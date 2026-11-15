@@ -13,6 +13,10 @@ It will be part of a small family of spreadsheet libraries:
 
 Watch the repository for the first real release.
 
+## Releasing
+
+Versions are managed with [Changesets](https://github.com/changesets/changesets). Merging a pull request that bumps the version publishes it to npm. See [RELEASING.md](RELEASING.md).
+
 ## License
 
 MIT © Afzal Ahmad

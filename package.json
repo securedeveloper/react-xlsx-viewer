@@ -5,11 +5,33 @@
   "type": "module",
   "main": "index.js",
   "exports": "./index.js",
-  "files": ["index.js", "README.md", "LICENSE"],
-  "keywords": ["react", "excel", "xlsx", "csv", "spreadsheet"],
+  "files": [
+    "index.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "react",
+    "excel",
+    "xlsx",
+    "csv",
+    "spreadsheet"
+  ],
   "author": "Afzal Ahmad",
   "license": "MIT",
-  "repository": { "type": "git", "url": "git+https://github.com/securedeveloper/react-xlsx-viewer.git" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/securedeveloper/react-xlsx-viewer.git"
+  },
   "homepage": "https://github.com/securedeveloper/react-xlsx-viewer#readme",
-  "bugs": { "url": "https://github.com/securedeveloper/react-xlsx-viewer/issues" }
+  "bugs": {
+    "url": "https://github.com/securedeveloper/react-xlsx-viewer/issues"
+  },
+  "devDependencies": {
+    "@changesets/cli": "3.0.3"
+  },
+  "scripts": {
+    "version-packages": "changeset version && npm install --package-lock-only --no-audit --no-fund",
+    "test:release": "node --test \"scripts/*.test.mjs\""
+  }
 }
