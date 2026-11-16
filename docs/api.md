@@ -391,7 +391,7 @@ There is nothing at import time: no `window`/`document` access. The entry starts
 - **Read options.** `read()` always runs with `{ dates: 'serial', styles: true, formulas: true, richText: 'runs' }`. Serials make number formatting zone-independent (§4).
 - **Worker.** With `worker`, the read runs through `createWorkerClient` (engine §5.5): the file bytes go to the worker (`transfer: true` for an `ArrayBuffer` the viewer created itself, never for the app's own buffer), and the `Workbook` comes back by structured clone.
   - The engine measured the **send** direction: for 600k cells, the calling thread is busy 6–254 ms depending on cell shape (engine §5.5, JSE-15).
-  - The **receive** direction (the main thread deserialising a large workbook from a worker) is not measured yet `[placeholder: the XLV-3 harness reads on the main thread]`. It decides [§12 Q5](#12-design-decisions).
+  - The **receive** direction (the main thread deserialising a large workbook from a worker), measured in XLV-4 (§9.1): while a worker reads a 500,000-cell file, main-thread frames stay at p95 17.3 ms and max 17.4 ms, so receiving fits within a frame. That settles [§12 Q5](#12-design-decisions): the workbook can live on the main thread after a worker read.
   - **Reading on the main thread** (measured in XLV-3, §9.1): opening a 2.7 MB, 500,000-cell file took 442 ms to the first grid, with no long animation frame over 50 ms, because the reader yields while it inflates and parses. The worker is therefore optional, not a default requirement.
 - **Why `worker` defaults to false.** The app owns the worker file (engine §12 Q15), so the viewer can't create one itself. The docs and the playground show the two-line worker file, and the README recommends it for files over a size measured in XLV-3.
 - **Cancellation.** Changing `source`, unmounting or calling `abort()` aborts the read through `signal`.
@@ -514,7 +514,7 @@ Targets are stated as **measurable goals**. Where a threshold is a public guidel
 | Rendered DOM stays bounded | Number of `gridcell` elements while scrolling | ≤ (visible rows + overscan) × (visible cols + overscan) + frozen + merges; must not grow with sheet size | DOM count after each scroll step |
 | Main thread stays free while loading | Longest task on the main thread between "file chosen" and "first cells painted" | No long animation frame (> 50 ms) while opening a file; XLV-3 baseline: none for 500,000 cells (§9.1) | Long Animation Frames API |
 | Time to first cells | "File chosen" mark → first grid paint | Reported per fixture size; XLV-3 baseline in §9.1 | `performance.now()` around mount, until the grid is painted |
-| Memory | JS heap after load over the engine's reader heap for the same file (engine §5.2: 94–275 bytes per cell) | Render-model overhead O(rows + cols + distinct styles + rendered cells), not O(cells); exact bound [placeholder] | `performance.measureUserAgentSpecificMemory` (cross-origin isolated test page) or CDP heap metrics |
+| Memory | JS heap per file after a full GC: the model, the render model, the mounted viewer, and what stays after release | Render-model overhead O(rows + cols + distinct styles + rendered cells), not O(cells); viewer overhead independent of file size; nothing retained after unmount. XLV-4 baseline in §9.1 | `Runtime.getHeapUsage` after `HeapProfiler.collectGarbage` over CDP, from the harness's `heapUsed` command |
 | Copy doesn't freeze | Time to build TSV + HTML for the copy limit | ≤ 200 ms (INP "good") on the CI runner, which set `COPY_LIMIT` to 50,000 cells (153 ms there) | Harness |
 | Bundle size | Minified + gzipped size of `XlsxViewer` with its engine imports | Reported per PR; XLV-3 baseline 30.3 KiB gzipped initially, 56.7 KiB with the lazily loaded reader (§9.1). A budget follows once the viewer is feature-complete | `scripts/bundle-size.mjs` (Vite, React external) in the `Performance` job |
 
@@ -522,7 +522,7 @@ Targets are stated as **measurable goals**. Where a threshold is a public guidel
 
 **CI job.** A `Performance` job reports every metric in the job summary on each PR. It is non-required until the baseline is stable, then the thresholds above gate. Machine-dependent numbers are compared with the same job's `main` baseline, not with absolute values.
 
-### 9.1 Measured in XLV-3
+### 9.1 Measured in XLV-3 and XLV-4
 
 `npm run perf -w react-xlsx-viewer` (`test/perf`, Vitest browser mode in Chromium; the CI job `Performance` runs it and reports to its summary). The fixture is a 2,000,000-cell workbook (200,000 rows × 10 columns) with shared styles, a frozen row and column, merges and hidden rows; the viewport is 1280 × 800 and the viewer 1200 × 700. "Local" is headless Chromium 150 on an Apple M2 laptop. "CI" is two runs of the `Performance` job on GitHub's `ubuntu-latest`, whose shared runners vary noticeably from run to run. Measured 2026-11-16. Times are ms, p50 / p95 / max.
 
@@ -541,6 +541,9 @@ Targets are stated as **measurable goals**. Where a threshold is a public guidel
 | Open a 2.7 MB `.xlsx` (500,000 cells) on the main thread | 442 to the grid; no long animation frame | 584–828; no long animation frame |
 | Copy, TSV + HTML | 10k 20; 100k 174; 500k 851 | 10k 30–39; 50k 153; 100k 249–302; 500k 1,333–1,622 |
 | Selection summary (`rangeStats`) | 1M cells 19 | 1M cells 17–22 |
+| Open the 2.7 MB `.xlsx` through a worker (`worker` prop, XLV-4) | 636 to the grid; no long animation frame | — |
+| Worker read of that file: main-thread frames while it runs (XLV-4) | 16.7 / 17.3 / 17.4; read 540 | — |
+| Memory, 500,000-cell file, JS heap after a full GC (XLV-4) | model 25.8 MB (54 bytes/cell); render model ≈ 0 MB of JS heap (its offset tables are ArrayBuffers, about 8 bytes per row and column); mounted viewer +3.3 MB; 0 MB retained after release | — |
 | Bundle (Vite, minified + gzip, React external) | 96.8 / 30.3 KiB initially (viewer, render model, number formats); 184.1 / 56.7 KiB with the lazily loaded reader and CSV parser; `styles.css` 8.4 / 2.3 KiB | same |
 
 **What the measurements set:**
