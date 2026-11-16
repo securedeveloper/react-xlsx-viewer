@@ -11,7 +11,7 @@ It will be part of a small family of spreadsheet libraries:
 - [react-data-import](https://github.com/securedeveloper/react-data-import): import .xlsx / .csv as datasets
 - [react-xlsx-viewer](https://github.com/securedeveloper/react-xlsx-viewer): view workbooks in the browser
 
-Watch the repository for the first real release.
+Watch the repository for the first real release. The design of the first version (a read-only viewer) is in [docs/api.md](docs/api.md) and [docs/ux.md](docs/ux.md).
 
 ## Releasing
 
