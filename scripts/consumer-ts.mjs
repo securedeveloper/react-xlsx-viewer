@@ -52,22 +52,32 @@ if (values.tarball) {
   console.log(`packed ${packed.filename}`);
 }
 
-const tsx = `import type { ReactElement } from 'react';
-import { useVersion, version } from 'react-xlsx-viewer';
+const tsx = `import { useRef, type ReactElement } from 'react';
+import { XlsxViewer, useWorkbook, DEFAULT_LABELS, version, type Selection, type XlsxViewerHandle, type XlsxViewerProps, type Workbook, type CellInput } from 'react-xlsx-viewer';
 
-export function Version(): ReactElement {
-  const v = useVersion();
-  return <output title={version}>{v}</output>;
+declare const file: File;
+declare const book: Workbook<CellInput>;
+
+export function Viewer(): ReactElement {
+  const ref = useRef<XlsxViewerHandle>(null);
+  const loaded = useWorkbook(file, { format: 'auto', readOptions: { limits: { maxCells: 1_000_000 } } });
+  const onSelectionChange = (s: Selection): void => void s.active.row;
+  const props: XlsxViewerProps = { source: loaded.workbook ?? book, locale: 'de-DE', zoom: 125, showHiddenSheets: true, onSelectionChange, labels: { noWorkbook: DEFAULT_LABELS.noWorkbook } };
+  void ref.current?.scrollTo("'Sheet 2'!B4");
+  return <XlsxViewer ref={ref} {...props} style={{ height: 600 }} onHyperlink={(l) => l.kind === 'external'} aria-label={version} />;
 }
 
 // These must be errors; if the package's types were missing or \`any\`, tsc reports unused directives.
 // @ts-expect-error version is a string
 export const notNumber: number = version;
-// @ts-expect-error useVersion takes no arguments
-useVersion(1);
+// @ts-expect-error source is required
+export const noSource: ReactElement = <XlsxViewer />;
+// @ts-expect-error zoom is a number
+export const badZoom: ReactElement = <XlsxViewer source={null} zoom="big" />;
 `;
-const cts = `import { version } from 'react-xlsx-viewer';
+const cts = `import { version, DEFAULT_LABELS } from 'react-xlsx-viewer';
 export const v: string = version;
+export const l: string = DEFAULT_LABELS.noWorkbook;
 // @ts-expect-error version is a string
 export const n: number = version;
 `;

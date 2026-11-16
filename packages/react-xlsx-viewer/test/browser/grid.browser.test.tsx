@@ -1,0 +1,100 @@
+// The grid in real Chromium: layout, sticky panes, scrolling and focus, which jsdom does not have.
+import { createElement, StrictMode } from 'react';
+import { flushSync } from 'react-dom';
+import { createRoot, type Root } from 'react-dom/client';
+import { afterEach, describe, expect, it } from 'vitest';
+import { XlsxViewer } from '../../src/index';
+import '../../src/styles.css';
+import { bigWorkbook } from './fixtures';
+
+let root: Root | null = null;
+let host: HTMLElement | null = null;
+afterEach(() => {
+  root?.unmount();
+  host?.remove();
+  root = null;
+});
+
+const nextFrame = (): Promise<void> => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+
+function mount(props: Parameters<typeof XlsxViewer>[0]): HTMLElement {
+  host = document.createElement('div');
+  host.style.cssText = 'width: 900px; height: 600px;';
+  document.body.append(host);
+  root = createRoot(host);
+  flushSync(() => root!.render(createElement(StrictMode, null, createElement(XlsxViewer, { style: { height: '100%' }, locale: 'en-US', ...props }))));
+  return host;
+}
+const activeCell = (): HTMLElement => document.querySelector<HTMLElement>('[role="gridcell"][tabindex="0"]')!;
+const key = (k: string, init: KeyboardEventInit = {}): void => {
+  document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, ...init }));
+};
+
+describe('grid in Chromium', () => {
+  it('keeps focus on the active cell while the keyboard scrolls far away, and bounds the DOM', async () => {
+    mount({ source: bigWorkbook(20_000, 30) });
+    await nextFrame();
+    activeCell().focus();
+    for (let i = 0; i < 10; i++) {
+      key('PageDown');
+      await nextFrame();
+    }
+    expect(document.activeElement).toBe(activeCell());
+    const row = Number(activeCell().dataset['r']);
+    expect(row).toBeGreaterThan(150);
+    key('ArrowDown', { ctrlKey: true });
+    await nextFrame();
+    expect(Number(activeCell().dataset['r'])).toBe(19_999);
+    expect(document.activeElement).toBe(activeCell());
+    // The active cell is on screen.
+    const scroller = document.querySelector<HTMLElement>('.xv-scroll')!.getBoundingClientRect();
+    const box = activeCell().getBoundingClientRect();
+    expect(box.top).toBeGreaterThanOrEqual(scroller.top);
+    expect(box.bottom).toBeLessThanOrEqual(scroller.bottom + 1);
+    // Only the window is in the DOM, not 600,000 cells.
+    expect(document.querySelectorAll('[role="gridcell"]').length).toBeLessThan(2000);
+  });
+
+  it('frozen rows, frozen columns and headers stay in place while scrolling', async () => {
+    mount({ source: bigWorkbook(2_000, 60) });
+    await nextFrame();
+    const scroller = document.querySelector<HTMLElement>('.xv-scroll')!;
+    const header = (): DOMRect => document.querySelector<HTMLElement>('[data-r="0"][data-c="0"]')!.getBoundingClientRect(); // A1: frozen row and column
+    const frozenCol = (): DOMRect => document.querySelector<HTMLElement>('[data-r="5"][data-c="0"]')?.getBoundingClientRect() ?? new DOMRect();
+    const before = { header: header().top, col: frozenCol().left };
+    scroller.scrollTop = 3000;
+    scroller.scrollLeft = 1500;
+    scroller.dispatchEvent(new Event('scroll'));
+    await nextFrame();
+    expect(Math.round(header().top)).toBe(Math.round(before.header));
+    const firstBodyRow = Number(document.querySelector<HTMLElement>('.xv-body [role="row"]')!.getAttribute('aria-rowindex'));
+    expect(firstBodyRow).toBeGreaterThan(100);
+    // Column A (frozen) is still drawn at the same x.
+    const a = document.querySelector<HTMLElement>(`.xv-body [data-c="0"]`)!.getBoundingClientRect();
+    expect(Math.round(a.left)).toBe(Math.round(before.col));
+  });
+
+  it('right-to-left sheets put column A on the right', async () => {
+    const wb = bigWorkbook(50, 5);
+    wb.sheets[0]!.view = { rightToLeft: true };
+    mount({ source: wb });
+    await nextFrame();
+    const a = document.querySelector<HTMLElement>('[data-r="1"][data-c="0"]')!.getBoundingClientRect();
+    const b = document.querySelector<HTMLElement>('[data-r="1"][data-c="1"]')!.getBoundingClientRect();
+    expect(a.left).toBeGreaterThan(b.left);
+  });
+
+  it('scales fonts and sizes with zoom (11 pt is 14.67 px at 100 %)', async () => {
+    mount({ source: { sheets: [{ name: 'S', rows: [['abc']] }] }, defaultZoom: 200 });
+    await nextFrame();
+    const text = document.querySelector<HTMLElement>('[data-r="0"][data-c="0"] .xv-text')!;
+    expect(parseFloat(getComputedStyle(text).fontSize)).toBeCloseTo(29.33, 1);
+    expect(document.querySelector<HTMLElement>('[data-r="0"][data-c="0"]')!.getBoundingClientRect().height).toBeCloseTo(40, 0);
+  });
+
+  it('shows #### for a number that does not fit (measured text)', async () => {
+    mount({ source: { sheets: [{ name: 'S', rows: [[{ value: 123456789012345, style: { numFmt: '#,##0' } }]], colProps: [{ width: 4 }] }] } });
+    await nextFrame();
+    expect(document.querySelector('[data-r="0"][data-c="0"]')!.textContent).toMatch(/^#+$/);
+  });
+});

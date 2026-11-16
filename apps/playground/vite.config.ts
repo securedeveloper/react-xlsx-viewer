@@ -18,6 +18,7 @@ const config: UserConfig = defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
+      'react-xlsx-viewer/styles.css': fileURLToPath(new URL('../../packages/react-xlsx-viewer/src/styles.css', import.meta.url)),
       'react-xlsx-viewer': fileURLToPath(new URL('../../packages/react-xlsx-viewer/src/index.ts', import.meta.url)),
     },
   },

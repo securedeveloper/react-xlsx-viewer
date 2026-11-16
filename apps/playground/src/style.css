@@ -22,12 +22,17 @@ body {
   background: var(--bg);
 }
 main {
-  max-width: 40rem;
-  margin: 4rem auto;
+  max-width: 80rem;
+  margin: 1.5rem auto;
   padding: 0 1rem;
 }
+.bar { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
+.bar h1 { margin: 0; flex: 1 1 auto; }
+.open input { margin-left: 0.5rem; }
+.version { color: var(--muted); }
+.viewer-box { height: min(70vh, 720px); }
 h1 {
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   line-height: 1.2;
 }
 .lead {

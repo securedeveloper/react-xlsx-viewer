@@ -21,3 +21,6 @@ coverage/
 CLAUDE.md
 CLAUDE.local.md
 .remember/
+
+# Performance harness output
+perf-results.json

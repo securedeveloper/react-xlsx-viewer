@@ -29,7 +29,7 @@ try {
   const allowed = (p) => ['package.json', 'README.md', 'LICENSE'].includes(p) || p.startsWith('dist/');
   const extra = files.filter((p) => !allowed(p));
   if (extra.length) throw new Error(`unexpected files in tarball: ${extra.join(', ')}`);
-  for (const need of ['package.json', 'README.md', 'LICENSE', 'dist/index.js', 'dist/index.cjs', 'dist/index.d.ts', 'dist/index.d.cts']) {
+  for (const need of ['package.json', 'README.md', 'LICENSE', 'dist/index.js', 'dist/index.cjs', 'dist/index.d.ts', 'dist/index.d.cts', 'dist/styles.css']) {
     if (!files.includes(need)) throw new Error(`missing from tarball: ${need}`);
   }
 
@@ -48,22 +48,38 @@ try {
 
   step('ESM import');
   console.log(run('node', ['--input-type=module', '-e', `
-    import { version, useVersion } from 'react-xlsx-viewer';
+    import { version, XlsxViewer, useWorkbook, DEFAULT_LABELS, DEFAULT_FONT_MAP, COPY_LIMIT, isExcelError } from 'react-xlsx-viewer';
     if (version !== ${JSON.stringify(pkg.version)}) throw new Error('bad version ' + version);
-    if (typeof useVersion !== 'function') throw new Error('missing export');
+    if (typeof useWorkbook !== 'function' || typeof XlsxViewer !== 'object' || typeof isExcelError !== 'function') throw new Error('missing export');
+    if (!DEFAULT_LABELS.noWorkbook || !DEFAULT_FONT_MAP.calibri || !(COPY_LIMIT > 0)) throw new Error('missing constants');
     console.log('esm ok', version);
   `], app).trim());
 
   step('CJS require');
   console.log(run('node', ['-e', `
-    const { version, useVersion } = require('react-xlsx-viewer');
+    const { version, XlsxViewer, useWorkbook } = require('react-xlsx-viewer');
     if (version !== ${JSON.stringify(pkg.version)}) throw new Error('bad version ' + version);
-    if (typeof useVersion !== 'function') throw new Error('missing export');
+    if (typeof useWorkbook !== 'function' || typeof XlsxViewer !== 'object') throw new Error('missing export');
     console.log('cjs ok', version);
   `], app).trim());
 
+  step('server render: an empty shell, no window access at import or render');
+  console.log(run('node', ['--input-type=module', '-e', `
+    import { createElement } from 'react';
+    import { renderToString } from 'react-dom/server';
+    import { XlsxViewer } from 'react-xlsx-viewer';
+    const html = renderToString(createElement(XlsxViewer, { source: null }));
+    if (!html.includes('No workbook open.') || html.includes('role="grid"')) throw new Error('unexpected SSR output: ' + html);
+    console.log('ssr ok');
+  `], app).trim());
+
+  step('stylesheet export');
+  const cssPath = createRequire(join(app, 'noop.js')).resolve('react-xlsx-viewer/styles.css');
+  if (!readFileSync(cssPath, 'utf8').includes('.xv-viewer')) throw new Error('styles.css is not the viewer stylesheet');
+  console.log('css ok');
+
   step('types (node16 ESM + CJS, bundler)');
-  const src = `import { version, useVersion } from 'react-xlsx-viewer';\nconst v: string = version;\nconst h: () => string = useVersion;\nexport { v, h };\n`;
+  const src = `import { version, useWorkbook, type XlsxViewerProps, type UseWorkbook } from 'react-xlsx-viewer';\nconst v: string = version;\nconst h: (s: XlsxViewerProps['source']) => UseWorkbook = useWorkbook;\nexport { v, h };\n`;
   writeFileSync(join(app, 'esm.mts'), src);
   writeFileSync(join(app, 'cjs.cts'), src);
   writeFileSync(join(app, 'bundler.ts'), src);

@@ -22,7 +22,9 @@
     "viewer"
   ],
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "*.css"
+  ],
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.cts",
@@ -37,6 +39,7 @@
         "default": "./dist/index.cjs"
       }
     },
+    "./styles.css": "./dist/styles.css",
     "./package.json": "./package.json"
   },
   "files": [
@@ -55,7 +58,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:browser": "vitest run --config vitest.browser.config.ts",
-    "lint:pkg": "publint --strict && attw --pack ."
+    "lint:pkg": "publint --strict && attw --pack . --exclude-entrypoints ./styles.css",
+    "perf": "vitest run --config vitest.perf.config.ts"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
@@ -71,5 +75,8 @@
     "react-dom": "^19.3.1",
     "tsdown": "^0.23.7",
     "vitest": "^5.1.0"
+  },
+  "dependencies": {
+    "javascript-excel": "^2.0.0-alpha.3"
   }
 }

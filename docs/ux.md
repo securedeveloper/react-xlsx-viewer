@@ -37,7 +37,7 @@ The viewer follows familiar spreadsheet conventions: a grid with lettered column
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-- **Size.** The viewer fills the box the app gives it, so the app sets a height. Without a height, it uses a minimum of [placeholder] px and logs a development warning.
+- **Size.** The viewer fills the box the app gives it, so the app sets a height. Without a height, it uses a minimum height of 240 px (`styles.css`).
 - **Optional areas.** The formula bar, sheet tabs and status bar can each be turned off (`showFormulaBar`, `showSheetTabs`, `showStatusBar`). An app embedding a one-sheet preview might show the grid alone.
 - **Direction.** The chrome follows the document's direction (`dir` on an ancestor). A right-to-left **sheet** flips only the grid (column A on the right, row headers on the right), as in spreadsheet programs. The chrome stays in the app's direction.
 - **No toolbar in phase 1.** Zoom lives in the status bar. Find, sort/filter views and freeze toggles come in phase 2.
@@ -98,7 +98,7 @@ Every key in this table is listed in a "Keyboard shortcuts" dialog, opened from 
   - `text/html`: a `<table>` with basic inline styles.
 
   Pasting into another spreadsheet, a document or an email keeps the layout.
-- **Size limit.** Above [placeholder] cells (api.md §9), the viewer asks first: "Copy 2,400,000 cells? This may take a moment." Above a hard limit it refuses, with a message.
+- **Size limit.** Above 50,000 cells (`COPY_LIMIT`, api.md §9.1) the viewer refuses with a message in the status bar: building the clipboard data would take longer than 200 ms. Asking first, and copying larger ranges in the background, may come later.
 - **Confirmation.** A short "Copied 12 cells" appears in the status bar. It is announced politely (§7).
 - **No paste and no cut.** This is a read-only viewer.
 
@@ -134,7 +134,7 @@ Every key in this table is listed in a "Keyboard shortcuts" dialog, opened from 
   - for a formula cell: `=` + formula text (with `_xlfn.` prefixes removed for display), in a monospace font. Array formulas show as `{=…}`;
   - for other cells: the value as entered, not as formatted (as spreadsheet programs do). Numbers appear in full precision, dates as the locale's date (and time, if any) `[to verify against Excel's formula-bar display]`, and text as is;
   - for formula cells, a small secondary line with the cached value ("Result: 2,230.50"), so the relation between the formula and the grid is explicit. For a formula without a cached value it reads "Result: not calculated".
-- **Long formulas** wrap up to [placeholder] lines. A toggle expands the bar.
+- **Long formulas** wrap in the field, which shows one line and can be resized taller.
 - **Accessible names.** The `=` before the content is a glyph, not an icon. The field's accessible name is "Formula" or "Value".
 
 ### 5.2 Status bar
@@ -192,7 +192,7 @@ When the reader reports content the viewer doesn't show (`UNSUPPORTED_PART`: cha
   - The active formula cell gets `aria-describedby` pointing to a visually hidden "Formula: =SUM(B1:B3)" node, so the formula is announced after the value without leaving the grid.
   - A formula without a cached value is described as "Not calculated".
 - **Hyperlinks.** Link cells are described as "Link to {host}" (or "Link to Summary, B4").
-- **Selection.** `aria-selected` is set on the selected cells within the rendered window. The status bar's summary, throttled to at most one announcement per [placeholder] ms of keyboard idle, covers ranges larger than what is rendered.
+- **Selection.** `aria-selected` is set on the selected cells within the rendered window. The status bar's summary, announced after 600 ms of keyboard idle, covers ranges larger than what is rendered.
 - **Hidden rows and columns.** The `aria-rowindex` gaps tell the screen reader. The hidden-row markers in the headers have text alternatives.
 - **Sheet switching.** Switching sheets announces "Sheet: {name}, {active cell}".
 - **Loading, errors and notices.** These use `role="status"`, `role="alert"` and a labelled region, as in §6.
@@ -269,7 +269,7 @@ Run for each release (XLV-9 records the results). The automated parts run in CI.
 
 ## 10. Small screens
 
-- **Under 600 px wide** [placeholder: breakpoint confirmed in XLV-4]:
+- **Under 600 px wide** (the breakpoint in `styles.css`; checked at 390 px in XLV-3):
   - the formula bar collapses to the address and a "Show formula" toggle;
   - the status bar shows only the zoom and the selection count;
   - sheet tabs keep their scrolling strip plus the "All sheets" list.

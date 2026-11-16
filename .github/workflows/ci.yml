@@ -114,6 +114,39 @@ jobs:
       - name: Browser tests
         run: npm run test:browser
 
+  # The Performance harness (packages/react-xlsx-viewer/test/perf, docs/api.md §9) in
+  # Chromium: scroll frames, keyboard and click response, DOM size, copy and summary
+  # cost, opening an .xlsx. Reports to the job summary and an artifact; not required.
+  performance:
+    name: Performance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Playwright version
+        id: pw
+        run: echo "version=$(npm -w react-xlsx-viewer exec -- playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}-chromium-headless-shell
+      - name: Install Chromium (headless shell) and its system libraries
+        run: npm -w react-xlsx-viewer exec -- playwright install --with-deps --only-shell chromium
+      - name: Performance harness
+        run: npm -w react-xlsx-viewer run perf
+      - name: Summary
+        run: node scripts/perf-summary.mjs
+      - name: Bundle size
+        run: npm run build -w react-xlsx-viewer && node scripts/bundle-size.mjs
+      - uses: actions/upload-artifact@v7
+        with:
+          name: performance
+          path: packages/react-xlsx-viewer/perf-results.json
+
   # Consumer TypeScript matrix: one tarball, type-checked by a consumer project
   # on several TypeScript versions, @types/react majors and moduleResolution modes.
   pack:
