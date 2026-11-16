@@ -3,7 +3,7 @@ import { createElement, StrictMode } from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it } from 'vitest';
-import { XlsxViewer } from '../../src/index';
+import { DEFAULT_LABELS, XlsxViewer } from '../../src/index';
 import '../../src/styles.css';
 import { bigWorkbook } from './fixtures';
 
@@ -203,6 +203,37 @@ describe('grid in Chromium', () => {
       expect(Number(top.dataset['r'])).toBe(250);
       expect(rowH(250)).toBeGreaterThan(40);
       expect(line - top.getBoundingClientRect().top).toBeCloseTo(7, 0);
+    });
+  });
+  describe('small sheets fill the viewport (issue #17)', () => {
+    const filled = (el: HTMLElement): void => {
+      const scroller = el.querySelector<HTMLElement>('.xv-scroll')!;
+      const canvas = el.querySelector<HTMLElement>('.xv-canvas')!.getBoundingClientRect();
+      expect(canvas.width).toBeGreaterThanOrEqual(scroller.clientWidth);
+      expect(canvas.height).toBeGreaterThanOrEqual(scroller.clientHeight);
+    };
+
+    it('adds enough empty rows and columns to fill the viewer at a small zoom', async () => {
+      const el = mount({ source: { sheets: [{ name: 'S', rows: [['a', 'b'], ['c', 'd']] }] }, defaultZoom: 25 });
+      for (let i = 0; i < 3; i++) await nextFrame();
+      filled(el);
+    });
+
+    it('grows when zooming out, keeping the selection and scroll position', async () => {
+      const el = mount({ source: { sheets: [{ name: 'S', rows: [['a', 'b'], ['c', 'd']] }] } });
+      await nextFrame();
+      document.querySelector<HTMLElement>('[data-r="1"][data-c="1"]')!.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, buttons: 1 }));
+      await nextFrame();
+      const zoomOut = el.querySelector<HTMLButtonElement>(`button[aria-label="${DEFAULT_LABELS.zoomOut}"]`)!;
+      for (let i = 0; i < 6; i++) {
+        zoomOut.click();
+        await nextFrame();
+      }
+      for (let i = 0; i < 3; i++) await nextFrame();
+      expect(el.querySelector<HTMLSelectElement>('select.xv-zoom')!.value).not.toBe('100');
+      filled(el);
+      expect(activeCell().dataset['r']).toBe('1');
+      expect(activeCell().dataset['c']).toBe('1');
     });
   });
 });

@@ -85,6 +85,8 @@ export interface GridProps {
   /** Extra content positioned in the scroll area, after the grid (the link chip). */
   overlay?: ((geometry: { x: number; y: number; width: number; height: number }) => ReactNode) | undefined;
   initialScroll?: { top: number; left: number } | undefined;
+  /** The scroll area's size in CSS px, when it changes. */
+  onViewportChange?: ((size: { width: number; height: number }) => void) | undefined;
   onScrollChange?: ((pos: { top: number; left: number }) => void) | undefined;
 }
 
@@ -415,6 +417,10 @@ export const Grid: ForwardRefExoticComponent<GridProps & RefAttributes<GridHandl
     // Only when the sheet changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rs]);
+  const onViewportChange = props.onViewportChange;
+  useEffect(() => {
+    onViewportChange?.(view);
+  }, [view, onViewportChange]);
   const frame = useRef(0);
   const onScroll = useCallback(() => {
     if (frame.current) return;

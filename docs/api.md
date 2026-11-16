@@ -645,6 +645,7 @@ Each question had a recommendation, and Afzal accepted all sixteen on 2026-11-16
 
 **Q4. Grid extent.**
 - *Decided (2026-11-16):* used range plus a margin (default 50 rows and 10 columns), not the full 1,048,576 × 16,384 grid. It avoids browser element-size caps and gives screen readers a meaningful `aria-rowcount`. Full-grid scrolling can come with editing (phase 3), when empty cells become useful.
+- *Implemented (XLV-6, #17):* the viewer's margin is at least 50 rows and 30 columns, and at least as many default-size rows and columns as fill the viewport at the current zoom. A small sheet therefore never ends inside the viewer. The margin only grows, in steps of 10, as the viewer grows or zooms out. A rebuild of the same sheet keeps the auto-fitted row heights, the selection, the zoom and the scroll position.
 
 **Q5. Where the workbook lives.**
 - *Decided (2026-11-16):* in phase 1, on the main thread, after a worker read. The render model API is window-based (`renderCell`, `rowTop`, …), so a later version can keep the workbook in the worker and fetch windows asynchronously, if XLV-3 measures the receive cost as too high for large files.
