@@ -105,6 +105,41 @@ describe('grid in Chromium', () => {
     expect(e.left).toBeGreaterThanOrEqual(c.left);
     expect(getComputedStyle(edges).borderTopWidth).toBe('1px');
     expect(document.querySelectorAll('[data-r="0"][data-c="1"] .xv-diagonals line').length).toBe(2);
+  it('in a right-to-left sheet, long text spills to the left into empty cells', async () => {
+    mount({ source: { sheets: [{ name: 'S', rows: [['A1 is on the right and this text is long', undefined, undefined]], view: { rightToLeft: true } }] } });
+    await nextFrame();
+    const cell = document.querySelector<HTMLElement>('[data-r="0"][data-c="0"]')!.getBoundingClientRect();
+    const text = document.querySelector<HTMLElement>('[data-r="0"][data-c="0"] .xv-text')!.getBoundingClientRect();
+    expect(Math.round(text.right)).toBeLessThanOrEqual(Math.round(cell.right));
+    expect(text.left).toBeLessThan(cell.left);
+    // The text itself hugs the cell's right edge (general alignment starts on the right in an RTL sheet).
+    const range = document.createRange();
+    range.selectNodeContents(document.querySelector('[data-r="0"][data-c="0"] .xv-text')!);
+    expect(cell.right - range.getBoundingClientRect().right).toBeLessThan(8);
+  });
+
+  it('superscript cells are raised, fill alignment repeats, RTL reading order aligns right', async () => {
+    mount({
+      source: {
+        sheets: [{
+          name: 'S',
+          rows: [
+            [{ value: 'base' }, { value: 'sup', style: { font: { vertAlign: 'superscript' } } }],
+            [{ value: 'ab', style: { alignment: { horizontal: 'fill' } } }],
+            [{ value: 'abc', style: { alignment: { readingOrder: 'rtl' } } }],
+          ],
+        }],
+      },
+    });
+    await nextFrame();
+    const base = document.querySelector<HTMLElement>('[data-r="0"][data-c="0"] .xv-text')!.getBoundingClientRect();
+    const sup = document.querySelector<HTMLElement>('[data-r="0"][data-c="1"] .xv-text')!;
+    expect(sup.getBoundingClientRect().bottom).toBeLessThan(base.bottom - 2); // raised above the baseline of normal text
+    expect(parseFloat(getComputedStyle(sup).fontSize)).toBeLessThan(14.67);
+    expect(document.querySelector('[data-r="1"][data-c="0"]')!.textContent!.length).toBeGreaterThan(4);
+    const rtlCell = document.querySelector<HTMLElement>('[data-r="2"][data-c="0"]')!.getBoundingClientRect();
+    const rtlText = document.querySelector<HTMLElement>('[data-r="2"][data-c="0"] .xv-text')!.getBoundingClientRect();
+    expect(rtlCell.right - rtlText.right).toBeLessThan(rtlText.left - rtlCell.left);
   });
 
   it('shows #### for a number that does not fit (measured text)', async () => {
