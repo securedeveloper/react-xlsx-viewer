@@ -236,4 +236,33 @@ describe('grid in Chromium', () => {
       expect(activeCell().dataset['c']).toBe('1');
     });
   });
+
+  it('shrink to fit draws the text smaller so it fits the cell, and does not spill (issue #15)', async () => {
+    const long = 'a long sentence that shrinks to fit';
+    mount({
+      source: {
+        sheets: [{
+          name: 'S',
+          rows: [
+            [{ value: long, style: { alignment: { shrinkToFit: true } } }],
+            [{ value: 'short', style: { alignment: { shrinkToFit: true } } }],
+            [{ value: 123456789012345, style: { numFmt: '#,##0', alignment: { shrinkToFit: true } } }],
+          ],
+          colProps: [{ width: 10 }],
+        }],
+      },
+    });
+    await nextFrame();
+    const cell = (r: number): HTMLElement => document.querySelector<HTMLElement>(`[data-r="${r}"][data-c="0"]`)!;
+    const text = (r: number): HTMLElement => cell(r).querySelector<HTMLElement>('.xv-text')!;
+    // Smaller than 11 pt (14.67 px), and the whole text fits inside the cell.
+    expect(parseFloat(getComputedStyle(text(0)).fontSize)).toBeLessThan(14);
+    expect(text(0).scrollWidth).toBeLessThanOrEqual(cell(0).clientWidth);
+    expect(cell(0).classList.contains('xv-spill')).toBe(false);
+    // Text that fits keeps its size.
+    expect(parseFloat(getComputedStyle(text(1)).fontSize)).toBeCloseTo(14.67, 1);
+    // A number shrinks instead of showing ####.
+    expect(text(2).textContent).toBe('123,456,789,012,345');
+    expect(parseFloat(getComputedStyle(text(2)).fontSize)).toBeLessThan(14);
+  });
 });
