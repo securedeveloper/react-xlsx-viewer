@@ -112,7 +112,7 @@ it('measures the viewer', async () => {
   // 5. Copy cost by size (sets COPY_LIMIT).
   const rs = createRenderSheet(wb, 0);
   const copy: Array<{ cells: number; ms: number }> = [];
-  for (const rows of [1_000, 10_000, 50_000]) {
+  for (const rows of [1_000, 5_000, 10_000, 50_000]) {
     const t = performance.now();
     const range = { start: { row: 0, col: 0 }, end: { row: rows - 1, col: 9 } };
     const text = rangeAsTsv(rs, range);
