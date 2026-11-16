@@ -93,7 +93,7 @@ export interface RenderOptions {
   locale?: string;
   /** Maximum digit width of the workbook's default font, in px at 100 %. Default 7 (Calibri 11, engine §3.3). */
   maxDigitWidth?: number;
-  /** Rows/columns of empty margin after the used range (§12 Q4). Default 50 rows, 10 columns [placeholder: tune in XLV-3]. */
+  /** Rows/columns of empty margin after the used range (§12 Q4). Default 50 rows, 10 columns (kept in XLV-3). */
   margin?: { rows?: number; cols?: number };
   /** Allowed hyperlink schemes. Default ['http', 'https', 'mailto'], as the writer (engine §12 Q16). */
   hyperlinkSchemes?: string[];
@@ -302,7 +302,7 @@ export interface XlsxViewerProps {
   source: BinaryInput | File | Workbook<Cell> | null;
   /** 'auto' (default): zip signature means a workbook, else the File's name/type decides CSV/TSV; else an error. */
   format?: 'auto' | 'xlsx' | 'csv' | 'tsv';
-  /** A worker running javascript-excel's exposeWorker (engine §5.5), or a factory. false = read on the main thread. Default: false, with a dev-mode warning for files over [placeholder] MB. */
+  /** A worker running javascript-excel's exposeWorker (engine §5.5), or a factory. false = read on the main thread. Default: false; reading on the main thread doesn't block (§6.1). */
   worker?: Worker | (() => Worker) | false;
   /** Passed to read(): limits, sheets. `dates` is forced to 'serial' and `styles`/`formulas` to true. */
   readOptions?: Pick<ReadOptions, 'limits' | 'sheets'>;
@@ -391,7 +391,8 @@ There is nothing at import time: no `window`/`document` access. The entry starts
 - **Read options.** `read()` always runs with `{ dates: 'serial', styles: true, formulas: true, richText: 'runs' }`. Serials make number formatting zone-independent (§4).
 - **Worker.** With `worker`, the read runs through `createWorkerClient` (engine §5.5): the file bytes go to the worker (`transfer: true` for an `ArrayBuffer` the viewer created itself, never for the app's own buffer), and the `Workbook` comes back by structured clone.
   - The engine measured the **send** direction: for 600k cells, the calling thread is busy 6–254 ms depending on cell shape (engine §5.5, JSE-15).
-  - The **receive** direction (the main thread deserialising a large workbook) is not measured yet `[placeholder: measured in XLV-3]`. It decides [§12 Q5](#12-design-decisions).
+  - The **receive** direction (the main thread deserialising a large workbook from a worker) is not measured yet `[placeholder: the XLV-3 harness reads on the main thread]`. It decides [§12 Q5](#12-design-decisions).
+  - **Reading on the main thread** (measured in XLV-3, §9.1): opening a 2.7 MB, 500,000-cell file took 442 ms to the first grid, with no long animation frame over 50 ms, because the reader yields while it inflates and parses. The worker is therefore optional, not a default requirement.
 - **Why `worker` defaults to false.** The app owns the worker file (engine §12 Q15), so the viewer can't create one itself. The docs and the playground show the two-line worker file, and the README recommends it for files over a size measured in XLV-3.
 - **Cancellation.** Changing `source`, unmounting or calling `abort()` aborts the read through `signal`.
 
@@ -440,7 +441,7 @@ Decided by the plan: **DOM, not canvas**, for real accessibility. Canvas is eval
 
 ### 7.2 Virtualisation
 
-- **Window.** The visible window comes from the scroll offsets via `rowAt`/`colAt`, plus an overscan of [placeholder] rows and columns. It is recomputed on scroll in a `requestAnimationFrame`.
+- **Window.** The visible window comes from the scroll offsets via `rowAt`/`colAt`, plus an overscan of 6 rows and 3 columns (`OVERSCAN`; with it the harness drops no frames, §9.1). It is recomputed on scroll in a `requestAnimationFrame`.
 - **Always rendered.** Frozen rows and columns, merge anchors whose area intersects the window, and the active cell are always rendered.
 - **Element reuse.** Row and cell elements are keyed by sheet position. React reconciles a scroll step as a shift, and style objects are reused (the render-model cache returns the same `RenderStyle`, and a second `WeakMap<RenderStyle, CSSProperties>` returns the same style object).
 - **Browser element-size cap.** Browsers cap element sizes (on the order of tens of millions of px, varying by engine `[to verify per browser]`). A full 1,048,576-row sheet at 20 px would exceed some engines. Phase 1 therefore renders the **used range plus a margin** (§12 Q4). If a later phase needs the full grid, it adds scaled scrolling.
@@ -504,22 +505,49 @@ Decided by the plan: **DOM, not canvas**, for real accessibility. Canvas is eval
 
 ## 9. Performance goals and how they are measured
 
-Targets are stated as **measurable goals**. Where a threshold is a public guideline, it is cited. Where it depends on this code, it is `[placeholder]` until XLV-3's harness has a baseline. There are no invented numbers.
+Targets are stated as **measurable goals**. Where a threshold is a public guideline, it is cited. Where it depends on this code, XLV-3's harness set it from measurement (§9.1). There are no invented numbers.
 
 | Goal | Metric | Threshold | Method |
 |---|---|---|---|
 | Scrolling stays smooth | p95 frame duration during a scripted scroll (vertical, horizontal, diagonal) over the largest fixture | ≤ 16.7 ms (one frame at 60 Hz) | rAF timestamps plus Long Animation Frames entries, in Playwright Chromium; Firefox and WebKit reported, not gated |
-| Keyboard and click response | Interaction to Next Paint for arrow keys, PageDown, Ctrl+End, click and shift-click | ≤ 200 ms ("good" INP per Core Web Vitals); goal [placeholder] after baseline | `PerformanceEventTiming` in the harness |
+| Keyboard and click response | Interaction to Next Paint for arrow keys, PageDown, Ctrl+End, click and shift-click | ≤ 200 ms ("good" INP per Core Web Vitals); the XLV-3 baseline (§9.1) is the reference CI compares with | `PerformanceEventTiming` in the harness; keydown → next frame for synthetic events |
 | Rendered DOM stays bounded | Number of `gridcell` elements while scrolling | ≤ (visible rows + overscan) × (visible cols + overscan) + frozen + merges; must not grow with sheet size | DOM count after each scroll step |
-| Main thread stays free while loading | Longest task on the main thread between "file chosen" and "first cells painted" | [placeholder]; with a worker, dominated by deserialising the workbook (§6.1) | Long Tasks API |
-| Time to first cells | "File chosen" mark → first grid paint | [placeholder] per fixture size | `performance.mark` plus a paint observer |
+| Main thread stays free while loading | Longest task on the main thread between "file chosen" and "first cells painted" | No long animation frame (> 50 ms) while opening a file; XLV-3 baseline: none for 500,000 cells (§9.1) | Long Animation Frames API |
+| Time to first cells | "File chosen" mark → first grid paint | Reported per fixture size; XLV-3 baseline in §9.1 | `performance.now()` around mount, until the grid is painted |
 | Memory | JS heap after load over the engine's reader heap for the same file (engine §5.2: 94–275 bytes per cell) | Render-model overhead O(rows + cols + distinct styles + rendered cells), not O(cells); exact bound [placeholder] | `performance.measureUserAgentSpecificMemory` (cross-origin isolated test page) or CDP heap metrics |
-| Copy doesn't freeze | Time to build TSV + HTML for the copy limit | [placeholder]; the limit itself is set from this measurement | Harness |
-| Bundle size | Minified + gzipped size of `XlsxViewer` with its engine imports | Reported per PR; budget [placeholder] after XLV-3 | Built bundle measured in CI (as the react-data-export bundler job reports KiB) |
+| Copy doesn't freeze | Time to build TSV + HTML for the copy limit | ≤ 200 ms (INP "good"), which set `COPY_LIMIT` to 100,000 cells (174 ms) | Harness |
+| Bundle size | Minified + gzipped size of `XlsxViewer` with its engine imports | Reported per PR; XLV-3 baseline 30.3 KiB gzipped initially, 56.7 KiB with the lazily loaded reader (§9.1). A budget follows once the viewer is feature-complete | `scripts/bundle-size.mjs` (Vite, React external) in the `Performance` job |
 
 **Fixtures** come from the engine's corpus generator (`test/fixtures/read/generate_corpus.py`): dense numbers, unique strings, heavily styled, many merges, wide (16k columns), tall (1M rows), RTL, frozen and hidden rows/columns. They are generated in CI, not committed.
 
 **CI job.** A `Performance` job reports every metric in the job summary on each PR. It is non-required until the baseline is stable, then the thresholds above gate. Machine-dependent numbers are compared with the same job's `main` baseline, not with absolute values.
+
+### 9.1 Measured in XLV-3
+
+`npm run perf -w react-xlsx-viewer` (`test/perf`, Vitest browser mode in Chromium; the CI job `Performance` runs it and reports to its summary). The fixture is a 2,000,000-cell workbook (200,000 rows × 10 columns) with shared styles, a frozen row and column, merges and hidden rows; the viewport is 1280 × 800 and the viewer 1200 × 700. Measured locally in headless Chromium 150 on an Apple M2 laptop, 2026-11-16. Times are ms, p50 / p95 / max.
+
+| Measure | Result |
+|---|---|
+| Scroll frames (vertical, horizontal, diagonal) | 16.7 / 17.2–17.6 / 17.7; 0 dropped frames (> 25 ms); 0 long animation frames |
+| React commit while scrolling | 3.7 / 8.7 / 22.7 |
+| Rendered gridcells | at most 820, for the 2,000,000-cell sheet |
+| Arrow key → next frame | 16.7 / 17.4 / 17.7 |
+| Shift+arrow / click → next frame | 16.7 / 17.5 / 24.9; 16.6 / 17.0 / 17.2 |
+| PageDown → next frame | 29.7 / 52.7 / 57.4 (a whole new window of rows mounts) |
+| Ctrl+arrow, Ctrl+Home/End → next frame | 28.9 / 40.8 / 40.8 |
+| First cells, 2,000,000-cell workbook object | 145 ms |
+| Open a 2.7 MB `.xlsx` (500,000 cells) on the main thread | 442 ms to the grid; no long animation frame |
+| Copy, TSV + HTML | 10,000 cells 20 ms; 100,000 cells 174 ms; 500,000 cells 851 ms |
+| Selection summary (`rangeStats`) | 100,000 cells 4 ms; 1,000,000 cells 19 ms; 2,000,000 cells 66 ms |
+| Bundle (Vite, minified + gzip, React external) | 96.8 / 30.3 KiB initially (viewer, render model, number formats); 184.1 / 56.7 KiB with the lazily loaded reader and CSV parser; `styles.css` 8.4 / 2.3 KiB |
+
+What the measurements set:
+- **Overscan:** 6 rows and 3 columns, with no dropped frames.
+- **`COPY_LIMIT`:** 100,000 cells, the largest round size under 200 ms.
+- **`STATS_LIMIT`:** 1,000,000 cells, 19 ms.
+- **Worker:** stays optional (§6.1).
+
+Two changes came from the harness. Rows are memoised, so scrolling renders only the rows that enter the window; before that, the p95 frame was 33 ms. And a zoom-unit bug was found in the browser that jsdom couldn't show; a browser test now covers it.
 
 **Canvas decision rule.** If the scroll and INP goals can't be met by the DOM grid on the largest fixtures after profiling, a canvas renderer is evaluated with an ARIA grid overlay, and its design is a separate document. Until then, DOM.
 
@@ -605,7 +633,7 @@ Each question had a recommendation, and Afzal accepted all sixteen on 2026-11-16
 - *Decided (2026-11-16):* **React 18+**. A new package has no 17 users to keep. React 17.0.2 dates from 2021, and 18 brings `useId` and `useSyncExternalStore`, both useful for a stateful grid. react-data-export keeps 17 because it has existing users.
 
 **Q4. Grid extent.**
-- *Decided (2026-11-16):* used range plus a margin (default [placeholder] rows/columns), not the full 1,048,576 × 16,384 grid. It avoids browser element-size caps and gives screen readers a meaningful `aria-rowcount`. Full-grid scrolling can come with editing (phase 3), when empty cells become useful.
+- *Decided (2026-11-16):* used range plus a margin (default 50 rows and 10 columns), not the full 1,048,576 × 16,384 grid. It avoids browser element-size caps and gives screen readers a meaningful `aria-rowcount`. Full-grid scrolling can come with editing (phase 3), when empty cells become useful.
 
 **Q5. Where the workbook lives.**
 - *Decided (2026-11-16):* in phase 1, on the main thread, after a worker read. The render model API is window-based (`renderCell`, `rowTop`, …), so a later version can keep the workbook in the worker and fetch windows asynchronously, if XLV-3 measures the receive cost as too high for large files.
@@ -630,7 +658,7 @@ Each question had a recommendation, and Afzal accepted all sixteen on 2026-11-16
 - *Risk:* scroll positions shift as rows are measured. XLV-3 measures how noticeable that is.
 
 **Q12. Status-bar aggregates.**
-- *Decided (2026-11-16):* count, numeric count, sum and average of the selection's cached values, computed up to a limit ([placeholder] cells, set from §9's measurement), with "≥" shown past it. This is arithmetic on cached values, not formula evaluation.
+- *Decided (2026-11-16):* count, numeric count, sum and average of the selection's cached values, computed up to a limit (1,000,000 cells, 19 ms in the harness, §9.1), with "≥" shown past it. This is arithmetic on cached values, not formula evaluation.
 
 **Q13. Composable parts.**
 - *Decided (2026-11-16):* phase 1 exports `<XlsxViewer>` and `useWorkbook` only. Grid, tabs and formula bar become separate exports in phase 2, once the toolbar shows which seams are real. Exporting them now would freeze an API before it has a second user.

@@ -11,6 +11,8 @@ const config: UserConfig = defineConfig({
   dts: true,
   sourcemap: false,
   clean: true,
+  // The stylesheet ships as is: react-xlsx-viewer/styles.css (no runtime style injection, so a strict CSP works).
+  copy: ['src/styles.css'],
   // src/index.ts starts with "use client" (docs/api.md §5.3). With one entry and
   // no shared chunks rolldown keeps it as the first statement of both builds,
   // but still warns MODULE_LEVEL_DIRECTIVE. Drop only that warning for that

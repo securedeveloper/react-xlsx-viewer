@@ -16,14 +16,14 @@ Watch the repository for the first real release.
 ## Status
 
 - **1.0 is designed:** [docs/api.md](docs/api.md) and [docs/ux.md](docs/ux.md) (decided 2026-11-16) describe a read-only viewer: a virtualised, accessible grid with styles, merges, frozen panes, sheet tabs, number formats and a formula bar, built on javascript-excel.
-- **The workspace is scaffolded** (XLV-1): the package builds, is tested on React 18 and 19 (jsdom and Chromium), and is checked as a packed tarball. There is no viewer yet.
+- **The viewer exists** (XLV-3): `<XlsxViewer>` and `useWorkbook`, on javascript-excel 2.0.0-alpha.3 (`/read`, `/format`, `/render`). It is tested on React 18 and 19 in jsdom and Chromium, and has a performance harness (`npm run perf -w react-xlsx-viewer`). Styles, merges, panes and tabs work; XLV-4 onwards refines them.
 - **0.0.1 on npm only reserves the name.**
 
 ## Repository layout
 
 ```
 packages/react-xlsx-viewer/   the published library (TypeScript, ESM + CJS + .d.ts, "use client")
-apps/playground/              Vite + React 19 shell with a strict CSP; becomes the demo (XLV-11)
+apps/playground/              Vite + React 19 demo with a strict CSP: a sample workbook or your own file
 scripts/                      tarball smoke test, consumer TypeScript matrix, release helpers
 docs/                         the 1.0 API and UX design
 ```
@@ -37,6 +37,7 @@ npm ci
 npm run typecheck
 npm test                     # Vitest + React Testing Library (jsdom)
 npm run test:browser         # Vitest browser mode in Chromium (npx playwright install chromium once)
+npm run perf -w react-xlsx-viewer   # the Performance harness (Chromium): writes perf-results.json
 npm run build                # library (tsdown) + playground (Vite)
 npm run lint:pkg             # publint + are-the-types-wrong
 npm run smoke                # packs the library; checks "use client", ESM import, CJS require, types

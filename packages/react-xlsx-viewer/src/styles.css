@@ -1,0 +1,182 @@
+/*
+ * react-xlsx-viewer: the viewer's own look (docs/ux.md §8). Import once:
+ *   import 'react-xlsx-viewer/styles.css';
+ * Theme it with the --xv-* custom properties. The chrome follows
+ * prefers-color-scheme; the sheet keeps the file's colours (white paper).
+ */
+.xv-viewer {
+  --xv-font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --xv-accent: #4f4fb3;
+  --xv-chrome-bg: #f6f6f8;
+  --xv-chrome-fg: #1d1d1f;
+  --xv-muted: #5c5c66;
+  --xv-border: #c9c9d1;
+  --xv-header-bg: #ececf0;
+  --xv-header-fg: #44444d;
+  --xv-header-selected: #dcdcf2;
+  --xv-sheet-bg: #ffffff;
+  --xv-sheet-fg: #000000;
+  --xv-gridline: #e1e1e6;
+  --xv-selection: rgba(79, 79, 179, 0.14);
+  --xv-selection-line: #4f4fb3;
+  --xv-focus: #4f4fb3;
+  --xv-error: #b3261e;
+  display: flex;
+  flex-direction: column;
+  min-height: 240px;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--xv-border);
+  background: var(--xv-chrome-bg);
+  color: var(--xv-chrome-fg);
+  font-family: var(--xv-font);
+  font-size: 14px;
+  position: relative;
+}
+@media (prefers-color-scheme: dark) {
+  .xv-viewer {
+    --xv-accent: #a8a8ff;
+    --xv-chrome-bg: #1c1c20;
+    --xv-chrome-fg: #f2f2f4;
+    --xv-muted: #b0b0ba;
+    --xv-border: #4a4a52;
+    --xv-header-bg: #2a2a30;
+    --xv-header-fg: #d8d8de;
+    --xv-header-selected: #3a3a6a;
+    --xv-selection-line: #6f6fd6;
+    --xv-focus: #a8a8ff;
+    --xv-error: #ffb4ab;
+  }
+}
+
+.xv-visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.xv-button {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--xv-border);
+  border-radius: 6px;
+  min-height: 28px;
+  min-width: 28px;
+  padding: 0 0.6rem;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.xv-button:hover { border-color: var(--xv-accent); }
+.xv-button:disabled { opacity: 0.6; cursor: default; }
+.xv-icon-button { padding: 0; width: 28px; }
+.xv-viewer :focus-visible { outline: 2px solid var(--xv-focus); outline-offset: 1px; }
+
+/* Formula bar */
+.xv-formula-bar { display: flex; align-items: flex-start; gap: 0.5rem; padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--xv-border); }
+.xv-address { width: 6.5rem; font: inherit; font-variant-numeric: tabular-nums; color: inherit; background: var(--xv-sheet-bg); color: var(--xv-sheet-fg); border: 1px solid var(--xv-border); border-radius: 4px; padding: 0.2rem 0.4rem; }
+.xv-equals { color: var(--xv-muted); font-weight: 600; line-height: 1.9; }
+.xv-formula-field { flex: 1; min-width: 0; }
+.xv-formula { width: 100%; box-sizing: border-box; resize: vertical; font: inherit; background: var(--xv-sheet-bg); color: var(--xv-sheet-fg); border: 1px solid var(--xv-border); border-radius: 4px; padding: 0.2rem 0.4rem; min-height: 1.9rem; }
+.xv-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.xv-result { color: var(--xv-muted); font-size: 12px; padding-top: 2px; }
+
+/* Notices and states */
+.xv-notice { display: flex; gap: 1rem; align-items: flex-start; justify-content: space-between; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--xv-border); background: var(--xv-header-bg); }
+.xv-notice ul { margin: 0.25rem 0 0; padding-left: 1.25rem; }
+.xv-body-area { flex: 1; min-height: 0; display: flex; position: relative; background: var(--xv-sheet-bg); }
+.xv-state { margin: auto; text-align: center; padding: 1rem; max-width: 32rem; color: var(--xv-chrome-fg); }
+.xv-muted { color: var(--xv-muted); }
+.xv-error { color: var(--xv-error); font-weight: 600; }
+.xv-progress { width: 16rem; height: 6px; margin: 0.75rem auto; background: var(--xv-header-bg); border-radius: 3px; overflow: hidden; }
+.xv-progress-bar { height: 100%; background: var(--xv-accent); }
+
+/* Grid */
+.xv-scroll { flex: 1; overflow: auto; position: relative; background: var(--xv-sheet-bg); color: var(--xv-sheet-fg); outline: none; }
+.xv-canvas { position: relative; }
+.xv-grid { position: relative; }
+.xv-top { position: sticky; top: 0; z-index: 4; }
+.xv-row { position: absolute; left: 0; display: flex; flex-wrap: nowrap; }
+.xv-cell {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  overflow: hidden;
+  padding: 0 3px;
+  background: var(--xv-sheet-bg);
+  cursor: cell;
+  user-select: none;
+}
+.xv-top .xv-cell { background: var(--xv-sheet-bg); }
+.xv-cell.xv-spill { overflow: visible; }
+.xv-text { overflow: hidden; line-height: 1.2; max-width: 100%; }
+.xv-spill .xv-text { max-width: none; }
+.xv-edges { position: absolute; top: -1px; left: -1px; right: 0; bottom: 0; pointer-events: none; }
+.xv-cell.xv-selected::after,
+.xv-cell.xv-active::after { content: ''; position: absolute; inset: 0; pointer-events: none; }
+.xv-cell.xv-selected::after { background: var(--xv-selection); }
+.xv-cell.xv-active { outline: 2px solid var(--xv-selection-line); outline-offset: -2px; z-index: 3; }
+.xv-cell.xv-nocache::before { content: ''; position: absolute; top: 0; right: 0; border-style: solid; border-width: 0 6px 6px 0; border-color: transparent var(--xv-muted) transparent transparent; }
+.xv-spacer { flex: none; }
+.xv-rowheader,
+.xv-colheader,
+.xv-corner {
+  box-sizing: border-box;
+  background: var(--xv-header-bg);
+  color: var(--xv-header-fg);
+  font-family: var(--xv-font);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid var(--xv-border);
+  border-bottom: 1px solid var(--xv-border);
+  user-select: none;
+  cursor: default;
+}
+.xv-rowheader, .xv-corner { position: sticky; z-index: 3; }
+.xv-corner { z-index: 5; }
+.xv-header-selected { background: var(--xv-header-selected); }
+.xv-hidden-before.xv-colheader { border-left: 3px double var(--xv-muted); }
+.xv-hidden-before.xv-rowheader { border-top: 3px double var(--xv-muted); }
+
+/* Link chip */
+.xv-link-chip { position: absolute; z-index: 6; display: flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0.5rem; background: var(--xv-chrome-bg); color: var(--xv-chrome-fg); border: 1px solid var(--xv-border); border-radius: 6px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); font-family: var(--xv-font); font-size: 13px; max-width: 28rem; }
+.xv-link-url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xv-link-blocked { color: var(--xv-error); }
+
+/* Sheet tabs and status bar */
+.xv-tabs { display: flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; border-top: 1px solid var(--xv-border); }
+.xv-tablist { display: flex; gap: 0.25rem; overflow-x: auto; flex: 1; scrollbar-width: thin; }
+.xv-tab { font: inherit; color: inherit; background: transparent; border: 1px solid transparent; border-radius: 6px 6px 0 0; padding: 0.25rem 0.75rem; min-height: 28px; white-space: nowrap; cursor: pointer; position: relative; }
+.xv-tab[aria-selected='true'] { background: var(--xv-sheet-bg); color: var(--xv-sheet-fg); border-color: var(--xv-border); border-bottom: 2px solid var(--xv-accent); font-weight: 600; }
+.xv-tab-color { position: absolute; left: 6px; right: 6px; bottom: 0; height: 3px; border-radius: 2px; }
+.xv-all-sheets, .xv-zoom { font: inherit; color: inherit; background: transparent; border: 1px solid var(--xv-border); border-radius: 6px; min-height: 28px; }
+.xv-status { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.25rem 0.5rem; border-top: 1px solid var(--xv-border); font-size: 13px; }
+.xv-status-text { color: var(--xv-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xv-status-tools { display: flex; gap: 0.25rem; align-items: center; }
+
+/* Shortcuts dialog */
+.xv-dialog-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.35); display: flex; align-items: center; justify-content: center; z-index: 10; }
+.xv-dialog { background: var(--xv-chrome-bg); color: var(--xv-chrome-fg); border-radius: 8px; padding: 1rem 1.25rem; max-width: 34rem; max-height: 90%; overflow: auto; }
+.xv-dialog h2 { margin: 0 0 0.5rem; font-size: 1.1rem; }
+.xv-dialog th { text-align: left; padding: 0.15rem 1rem 0.15rem 0; font-weight: 400; white-space: nowrap; }
+.xv-dialog kbd { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+
+@media (forced-colors: active) {
+  .xv-cell.xv-active { outline-color: Highlight; }
+  .xv-cell.xv-selected::after { background: transparent; outline: 1px solid Highlight; }
+}
+@media (max-width: 600px) {
+  .xv-result, .xv-status-text { display: none; }
+}
