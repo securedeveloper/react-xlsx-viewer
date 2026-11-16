@@ -1,6 +1,6 @@
 # react-xlsx-viewer 1.0: UX design (phase 1, read-only viewer)
 
-Status: **proposal (XLV-0), awaiting Afzal's decisions** in [api.md §12](api.md#12-open-questions-and-recommendations). The API and architecture are in [api.md](api.md). `[to verify]` and `[placeholder]` mean what they mean there.
+Status: **design, decided** (2026-11-16, with [api.md §12](api.md#12-design-decisions)). The API and architecture are in [api.md](api.md). `[to verify]` and `[placeholder]` mean what they mean there.
 
 The viewer follows familiar spreadsheet conventions: a grid with lettered columns and numbered rows, sheet tabs at the bottom, a formula bar on top. That way, people who know any spreadsheet program can use it without learning anything. It has **its own look**. It uses no Microsoft names, icons, colours or trade dress, and its labels say "workbook", "sheet" and "cell" (§8).
 

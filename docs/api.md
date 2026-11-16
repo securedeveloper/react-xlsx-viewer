@@ -1,6 +1,6 @@
 # react-xlsx-viewer 1.0: API and architecture design (phase 1, read-only viewer)
 
-Status: **proposal (XLV-0), awaiting Afzal's decisions in [§12](#12-open-questions-and-recommendations).** Nothing here is implemented. The UX side (layout, keyboard, screen readers, look) is in [ux.md](ux.md).
+Status: **design, decided.** Afzal accepted all sixteen recommendations in [§12](#12-design-decisions) on 2026-11-16. Nothing here is implemented yet. The UX side (layout, keyboard, screen readers, look) is in [ux.md](ux.md).
 
 Conventions follow javascript-excel's [docs/api.md](https://github.com/securedeveloper/javascript-excel/blob/main/docs/api.md) (cited below as "engine §n"):
 - `[to verify]` marks a fact about Excel, a browser or a standard that must be checked before code relies on it.
@@ -20,7 +20,7 @@ Conventions follow javascript-excel's [docs/api.md](https://github.com/securedev
 9. [Performance goals and how they are measured](#9-performance-goals-and-how-they-are-measured)
 10. [Security model](#10-security-model)
 11. [Packaging, runtime support, testing](#11-packaging-runtime-support-testing)
-12. [Open questions and recommendations](#12-open-questions-and-recommendations)
+12. [Design decisions](#12-design-decisions)
 13. [Task breakdown](#13-task-breakdown)
 
 ---
@@ -33,7 +33,7 @@ Phase 1 is a **read-only viewer**: open an `.xlsx` (or `.xlsm`/`.xltx`/`.xltm`, 
 - **Grid:** a virtualised DOM grid (rows and columns) with real `role="grid"` keyboard and screen-reader semantics.
 - **Appearance:** cell styles (font, fill, borders, alignment, wrap, rotation, indent), merged cells, column widths and row heights, frozen panes, hidden rows and columns, right-to-left sheets, zoom.
 - **Workbook navigation:** sheet tabs.
-- **Number formats:** rendered with the file's format codes. This needs the engine's planned `/format` renderer ([§4](#4-engine-addition-b-the-number-format-renderer-javascript-excelformat)), proposed as JSE-18.
+- **Number formats:** rendered with the file's format codes. This needs the engine's planned `/format` renderer ([§4](#4-engine-addition-b-the-number-format-renderer-javascript-excelformat)), added as JSE-18 (decided, §12 Q1).
 - **Selection and copy:** selection by mouse, touch and keyboard, plus copy to the clipboard as text and as HTML.
 - **Formula bar:** shows the formula text of the active cell. The grid shows Excel's **cached values**; nothing is evaluated.
 - **Status bar:** shows a selection summary and the zoom.
@@ -62,7 +62,7 @@ The rule, as for react-data-export: **anything a Vue or vanilla viewer would als
 | **Number-format rendering:** `#,##0.00`, dates, sections, colours, `[h]:mm` | **javascript-excel `/format` (new, JSE-18)** | Needed by the viewer, by import previews and by `autoWidth`. The engine already decided it belongs there (engine §12 Q14) |
 | Formula display text (strip `_xlfn.` and similar prefixes, array braces) | javascript-excel `/render` | Display rule, framework-free |
 | Text measurement (overflow into neighbours, `####` for numbers that don't fit, shrink-to-fit, auto row height) | react-xlsx-viewer | Needs a browser (canvas `measureText`); the render model takes measurements as input |
-| Virtualisation, DOM structure, ARIA, focus, keyboard map, selection state, clipboard, zoom, sheet tabs, formula bar, status bar, notices | react-xlsx-viewer | UI and interaction. Selection and keyboard logic is written as framework-free internal modules inside this repo, so a later `@…/viewer-core` split is cheap ([§12 Q13](#12-open-questions-and-recommendations)) |
+| Virtualisation, DOM structure, ARIA, focus, keyboard map, selection state, clipboard, zoom, sheet tabs, formula bar, status bar, notices | react-xlsx-viewer | UI and interaction. Selection and keyboard logic is written as framework-free internal modules inside this repo, so a later `@…/viewer-core` split is cheap ([§12 Q13](#12-design-decisions)) |
 | Look (CSS, icons, labels) | react-xlsx-viewer | Its own look, [ux.md §8](ux.md#8-visual-design-its-own-look) |
 
 Data flow:
@@ -219,7 +219,7 @@ All colours in the render model are concrete `#RRGGBB` strings, resolved with `r
 
 ## 4. Engine addition B: the number-format renderer (`javascript-excel/format`)
 
-The engine decided not to render number formats in 2.0 and planned `javascript-excel/format` for later (engine §3.5.5, §12 Q14; roadmap row 3.x). **The viewer can't be faithful without it.** Dates would show as ISO strings or serials, currency and percentages as bare numbers, and `[Red]` negatives in black. So this design proposes:
+The engine decided not to render number formats in 2.0 and planned `javascript-excel/format` for later (engine §3.5.5, §12 Q14; roadmap row 3.x). **The viewer can't be faithful without it.** Dates would show as ISO strings or serials, currency and percentages as bare numbers, and `[Red]` negatives in black. So this design adds (decided, §12 Q1):
 
 > **JSE-18 · `javascript-excel/format`: number-format renderer.** Moves from the 3.x row of the engine roadmap to a 2.x minor, independent of the 2.1–2.5 phases (it touches no file parts). Prerequisite for viewer 1.0. Also used by `autoWidth` (formatted widths), import previews in react-data-import, and `fromTable`/`toCsv` "as displayed" options later.
 
@@ -285,7 +285,7 @@ export interface FormattedValue {
 
 ## 5. React API
 
-One component and one hook in phase 1, plus an imperative handle. The parts (grid, tabs, formula bar) are not exported separately yet ([§12 Q13](#12-open-questions-and-recommendations)).
+One component and one hook in phase 1, plus an imperative handle. The parts (grid, tabs, formula bar) are not exported separately yet ([§12 Q13](#12-design-decisions)).
 
 ```tsx
 import { XlsxViewer, useWorkbook } from 'react-xlsx-viewer';
@@ -391,7 +391,7 @@ There is nothing at import time: no `window`/`document` access. The entry starts
 - **Read options.** `read()` always runs with `{ dates: 'serial', styles: true, formulas: true, richText: 'runs' }`. Serials make number formatting zone-independent (§4).
 - **Worker.** With `worker`, the read runs through `createWorkerClient` (engine §5.5): the file bytes go to the worker (`transfer: true` for an `ArrayBuffer` the viewer created itself, never for the app's own buffer), and the `Workbook` comes back by structured clone.
   - The engine measured the **send** direction: for 600k cells, the calling thread is busy 6–254 ms depending on cell shape (engine §5.5, JSE-15).
-  - The **receive** direction (the main thread deserialising a large workbook) is not measured yet `[placeholder: measured in XLV-3]`. It decides [§12 Q5](#12-open-questions-and-recommendations).
+  - The **receive** direction (the main thread deserialising a large workbook) is not measured yet `[placeholder: measured in XLV-3]`. It decides [§12 Q5](#12-design-decisions).
 - **Why `worker` defaults to false.** The app owns the worker file (engine §12 Q15), so the viewer can't create one itself. The docs and the playground show the two-line worker file, and the README recommends it for files over a size measured in XLV-3.
 - **Cancellation.** Changing `source`, unmounting or calling `abort()` aborts the read through `signal`.
 
@@ -591,58 +591,58 @@ Node is only for SSR (shell) and tests.
 | Performance (XLV-3) | The harness and `Performance` job in §9 |
 | Security | Fixture files with hostile content: script-like text in cells, sheet names and number-format literals; `javascript:` links; huge merges; deep styles. Each must render as text with no console CSP violations |
 
-## 12. Open questions and recommendations
+## 12. Design decisions
 
-Each has a recommendation. Afzal decides. The numbering stays stable once decided.
+Each question had a recommendation, and Afzal accepted all sixteen on 2026-11-16. The sections above state the outcome as the design. The numbering is kept stable so references such as "§12 Q4" stay valid.
 
 **Q1. Number-format renderer timing.** Viewer 1.0 needs `javascript-excel/format`, which the engine roadmap places in 3.x.
-- *Recommendation:* add **JSE-18** and ship `/format` as a 2.x minor, before viewer 1.0 and independent of 2.1–2.5. It is self-contained (no file parts), and import previews and `autoWidth` benefit too.
+- *Decided (2026-11-16):* add **JSE-18** and ship `/format` as a 2.x minor, before viewer 1.0 and independent of 2.1–2.5. It is self-contained (no file parts), and import previews and `autoWidth` benefit too.
 
 **Q2. Render model in the engine.**
-- *Recommendation:* yes, as `javascript-excel/render` (XLV-2, built in the engine repo), as the plan's architecture note says. A Vue or canvas viewer reuses it, and it tests in Node. The React package keeps only DOM and interaction.
+- *Decided (2026-11-16):* yes, as `javascript-excel/render` (XLV-2, built in the engine repo), as the plan's architecture note says. A Vue or canvas viewer reuses it, and it tests in Node. The React package keeps only DOM and interaction.
 
 **Q3. React floor.**
-- *Recommendation:* **React 18+**. A new package has no 17 users to keep. React 17.0.2 dates from 2021, and 18 brings `useId` and `useSyncExternalStore`, both useful for a stateful grid. react-data-export keeps 17 because it has existing users.
+- *Decided (2026-11-16):* **React 18+**. A new package has no 17 users to keep. React 17.0.2 dates from 2021, and 18 brings `useId` and `useSyncExternalStore`, both useful for a stateful grid. react-data-export keeps 17 because it has existing users.
 
 **Q4. Grid extent.**
-- *Recommendation:* used range plus a margin (default [placeholder] rows/columns), not the full 1,048,576 × 16,384 grid. It avoids browser element-size caps and gives screen readers a meaningful `aria-rowcount`. Full-grid scrolling can come with editing (phase 3), when empty cells become useful.
+- *Decided (2026-11-16):* used range plus a margin (default [placeholder] rows/columns), not the full 1,048,576 × 16,384 grid. It avoids browser element-size caps and gives screen readers a meaningful `aria-rowcount`. Full-grid scrolling can come with editing (phase 3), when empty cells become useful.
 
 **Q5. Where the workbook lives.**
-- *Recommendation:* in phase 1, on the main thread, after a worker read. The render model API is window-based (`renderCell`, `rowTop`, …), so a later version can keep the workbook in the worker and fetch windows asynchronously, if XLV-3 measures the receive cost as too high for large files.
+- *Decided (2026-11-16):* in phase 1, on the main thread, after a worker read. The render model API is window-based (`renderCell`, `rowTop`, …), so a later version can keep the workbook in the worker and fetch windows asynchronously, if XLV-3 measures the receive cost as too high for large files.
 
 **Q6. Tab key.** Excel moves one cell right on Tab; the WAI-ARIA grid pattern makes the grid one tab stop and Tab leaves it.
-- *Recommendation:* follow WAI-ARIA (Tab leaves the grid), so keyboard users are never trapped in a large sheet. Arrow keys move between cells.
+- *Decided (2026-11-16):* follow WAI-ARIA (Tab leaves the grid), so keyboard users are never trapped in a large sheet. Arrow keys move between cells.
 
 **Q7. Hyperlink activation.** Excel follows a link on click, which makes selecting a link cell awkward and shows only the display text.
-- *Recommendation:* a click selects. A link chip under the selected cell shows the real URL and opens it; Alt+Enter also opens it (ux.md §5.3). Ctrl/Cmd+click keeps its selection meaning (add a range). This is safer against disguised links.
+- *Decided (2026-11-16):* a click selects. A link chip under the selected cell shows the real URL and opens it; Alt+Enter also opens it (ux.md §5.3). Ctrl/Cmd+click keeps its selection meaning (add a range). This is safer against disguised links.
 
 **Q8. Dark mode.** Cell colours come from the file, and most files assume white paper.
-- *Recommendation:* the viewer's chrome (formula bar, tabs, headers, status bar) follows `prefers-color-scheme`. The sheet area keeps the file's colours (white default) in both themes, as a document viewer would. An adaptive option that inverts default-coloured cells can come later if asked.
+- *Decided (2026-11-16):* the viewer's chrome (formula bar, tabs, headers, status bar) follows `prefers-color-scheme`. The sheet area keeps the file's colours (white default) in both themes, as a document viewer would. An adaptive option that inverts default-coloured cells can come later if asked.
 
 **Q9. Locale default.**
-- *Recommendation:* the browser's locale (`navigator.language`), overridable by `locale`. That matches how Excel renders locale-dependent formats on the reader's machine. Custom format codes still render as written (engine §12 Q5), with the locale's separators.
+- *Decided (2026-11-16):* the browser's locale (`navigator.language`), overridable by `locale`. That matches how Excel renders locale-dependent formats on the reader's machine. Custom format codes still render as written (engine §12 Q5), with the locale's separators.
 
 **Q10. Hidden sheets.**
-- *Recommendation:* not shown by default. `showHiddenSheets` shows `hidden` sheets (marked as hidden in the tab). `veryHidden` sheets are never shown, as in Excel's UI.
+- *Decided (2026-11-16):* not shown by default. `showHiddenSheets` shows `hidden` sheets (marked as hidden in the tab). `veryHidden` sheets are never shown, as in Excel's UI.
 
 **Q11. Rows with wrapped text and no stored height.** Excel auto-fits them on open.
-- *Recommendation:* auto-fit by measurement for those rows only, inside the rendered window, and adjust the offsets when they come into view. Rows with a stored height always use it.
+- *Decided (2026-11-16):* auto-fit by measurement for those rows only, inside the rendered window, and adjust the offsets when they come into view. Rows with a stored height always use it.
 - *Risk:* scroll positions shift as rows are measured. XLV-3 measures how noticeable that is.
 
 **Q12. Status-bar aggregates.**
-- *Recommendation:* count, numeric count, sum and average of the selection's cached values, computed up to a limit ([placeholder] cells, set from §9's measurement), with "≥" shown past it. This is arithmetic on cached values, not formula evaluation.
+- *Decided (2026-11-16):* count, numeric count, sum and average of the selection's cached values, computed up to a limit ([placeholder] cells, set from §9's measurement), with "≥" shown past it. This is arithmetic on cached values, not formula evaluation.
 
 **Q13. Composable parts.**
-- *Recommendation:* phase 1 exports `<XlsxViewer>` and `useWorkbook` only. Grid, tabs and formula bar become separate exports in phase 2, once the toolbar shows which seams are real. Exporting them now would freeze an API before it has a second user.
+- *Decided (2026-11-16):* phase 1 exports `<XlsxViewer>` and `useWorkbook` only. Grid, tabs and formula bar become separate exports in phase 2, once the toolbar shows which seams are real. Exporting them now would freeze an API before it has a second user.
 
 **Q14. Component name.**
-- *Recommendation:* `XlsxViewer` (matches the package name, and it also opens CSV). The alternative `SpreadsheetViewer` is more generic but doesn't match the package.
+- *Decided (2026-11-16):* `XlsxViewer` (matches the package name, and it also opens CSV). The alternative `SpreadsheetViewer` is more generic but doesn't match the package.
 
 **Q15. Copy guard.** Copying text that starts with `=` and pasting it into another spreadsheet as TSV can create a formula there.
-- *Recommendation:* no guard on copy. The user copies what they see into their own clipboard, and Excel does the same. The engine's CSV guard stays for files sent to others. Document it.
+- *Decided (2026-11-16):* no guard on copy. The user copies what they see into their own clipboard, and Excel does the same. The engine's CSV guard stays for files sent to others. Document it.
 
 **Q16. Fonts.**
-- *Recommendation:* never download fonts. Map file fonts to installed fonts with metric-compatible fallbacks (for example Calibri → Carlito, Cambria → Caladea, Arial → Liberation Sans, then the system sans-serif), via `DEFAULT_FONT_MAP` plus the `fonts` prop. No network, works under CSP, and layout stays close where those fonts are installed.
+- *Decided (2026-11-16):* never download fonts. Map file fonts to installed fonts with metric-compatible fallbacks (for example Calibri → Carlito, Cambria → Caladea, Arial → Liberation Sans, then the system sans-serif), via `DEFAULT_FONT_MAP` plus the `fonts` prop. No network, works under CSP, and layout stays close where those fonts are installed.
 
 ## 13. Task breakdown
 
