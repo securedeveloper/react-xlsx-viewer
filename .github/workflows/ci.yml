@@ -14,13 +14,19 @@ concurrency:
 
 jobs:
   ci:
-    name: CI
+    # Node 24 keeps the required check name `CI`. Node 26 (LTS since
+    # 2026-10) runs as an extra job, `Node 26`, that is not required yet.
+    name: ${{ matrix.node == 24 && 'CI' || format('Node {0}', matrix.node) }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [24, 26]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: ${{ matrix.node }}
           cache: npm
       - run: npm ci
       - name: Release script unit tests
