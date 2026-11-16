@@ -105,6 +105,8 @@ describe('grid in Chromium', () => {
     expect(e.left).toBeGreaterThanOrEqual(c.left);
     expect(getComputedStyle(edges).borderTopWidth).toBe('1px');
     expect(document.querySelectorAll('[data-r="0"][data-c="1"] .xv-diagonals line').length).toBe(2);
+  });
+
   it('in a right-to-left sheet, long text spills to the left into empty cells', async () => {
     mount({ source: { sheets: [{ name: 'S', rows: [['A1 is on the right and this text is long', undefined, undefined]], view: { rightToLeft: true } }] } });
     await nextFrame();
