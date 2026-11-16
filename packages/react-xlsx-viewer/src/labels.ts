@@ -16,6 +16,8 @@ export interface ViewerLabels {
   details: string;
   sheets: string;
   allSheets: string;
+  /** The corner header that selects every cell. */
+  selectAll: string;
   hiddenSheet: string;
   scrollTabsBack: string;
   scrollTabsForward: string;
@@ -69,6 +71,7 @@ export const DEFAULT_LABELS: Readonly<ViewerLabels> = Object.freeze({
   details: 'Details',
   sheets: 'Sheets',
   allSheets: 'All sheets',
+  selectAll: 'Select all cells',
   hiddenSheet: '(hidden)',
   scrollTabsBack: 'Previous sheets',
   scrollTabsForward: 'Next sheets',

@@ -94,6 +94,16 @@ describe('<XlsxViewer> grid', () => {
     expect(desc.textContent).toContain('Formula: =NOW()');
   });
 
+  it('labels the corner header, gives link cells a hover text, and draws the frozen divider', () => {
+    render(<XlsxViewer source={book()} />);
+    expect(screen.getByRole('columnheader', { name: 'Select all cells' })).toBeTruthy();
+    expect(cell(3, 1).getAttribute('title')).toBe('https://example.com/x');
+    expect(cell(3, 1).className).toContain('xv-link');
+    // Row 1 is frozen: its cells carry the divider below them.
+    expect(cell(0, 1).style.boxShadow).toContain('var(--xv-frozen-line)');
+    expect(cell(1, 1).style.boxShadow).not.toContain('var(--xv-frozen-line)');
+  });
+
   it('link chip: shows the real target, blocks disallowed schemes', () => {
     const { rerender } = render(<XlsxViewer source={book()} defaultSelection={{ ranges: [{ start: { row: 3, col: 1 }, end: { row: 3, col: 1 } }], active: { row: 3, col: 1 } }} />);
     expect(screen.getByText('example.com').tagName).toBe('STRONG');
