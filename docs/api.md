@@ -543,7 +543,7 @@ Targets are stated as **measurable goals**. Where a threshold is a public guidel
 | Selection summary (`rangeStats`) | 1M cells 19 | 1M cells 17–22 |
 | Open the 2.7 MB `.xlsx` through a worker (`worker` prop, XLV-4) | 636 to the grid; no long animation frame | — |
 | Worker read of that file: main-thread frames while it runs (XLV-4) | 16.7 / 17.3 / 17.4; read 540 | — |
-| Scroll frames with auto-fit: 20,000 rows, every row wraps (XLV-5) | 16.7 / 17 / 17.6, 0 dropped; commit 1.2 / 8.4 / 11; no long animation frame | [placeholder: CI run on the PR] |
+| Scroll frames with auto-fit: 20,000 rows, every row wraps (XLV-5) | 16.7 / 17 / 17.6, 0 dropped; commit 1.2 / 8.4 / 11; no long animation frame | 16.7 / 16.8 / 33.4, 11 of 300 dropped; commit 1.7 / 9.7 / 17.3; no long animation frame (the same run's plain vertical scroll dropped 53 of 300) |
 | Memory, 500,000-cell file, JS heap after a full GC (XLV-4) | model 25.8 MB (54 bytes/cell); render model ≈ 0 MB of JS heap (its offset tables are ArrayBuffers, about 8 bytes per row and column); mounted viewer +3.3 MB; 0 MB retained after release | — |
 | Bundle (Vite, minified + gzip, React external) | 96.8 / 30.3 KiB initially (viewer, render model, number formats); 184.1 / 56.7 KiB with the lazily loaded reader and CSV parser; `styles.css` 8.4 / 2.3 KiB | same |
 
