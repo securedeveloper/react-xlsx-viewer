@@ -95,6 +95,13 @@ const BORDER_CSS: Record<string, string> = {
   double: '3px double', thick: '3px solid',
 };
 const borderCss = (b: RenderBorder | undefined): string | undefined => (b ? `${BORDER_CSS[b.style] ?? '1px solid'} ${b.color}` : undefined);
+/** SVG stroke for a diagonal border: width and dash pattern from the border style. */
+function strokeOf(b: RenderBorder): { stroke: string; strokeWidth: number; strokeDasharray?: string } {
+  const css = BORDER_CSS[b.style] ?? '1px solid';
+  const width = Number.parseInt(css, 10) || 1;
+  const dash = css.includes('dotted') ? '1 2' : css.includes('dashed') ? '4 2' : undefined;
+  return dash ? { stroke: b.color, strokeWidth: width, strokeDasharray: dash } : { stroke: b.color, strokeWidth: width };
+}
 
 function backgroundCss(cell: RenderCell): CSSProperties {
   const bg = cell.style.background;
@@ -214,6 +221,8 @@ const CellView = memo(function CellView(p: CellViewProps): ReactElement {
   if (shadows.length) style.boxShadow = shadows.join(', ');
   const edges = cell?.edges;
   const hasEdges = edges && (edges.top || edges.left || edges.right || edges.bottom);
+  const diagUp = cell?.style.border.diagonalUp;
+  const diagDown = cell?.style.border.diagonalDown;
   return (
     <div
       role="gridcell"
@@ -235,6 +244,13 @@ const CellView = memo(function CellView(p: CellViewProps): ReactElement {
           aria-hidden="true"
           style={{ borderTop: borderCss(edges.top), borderLeft: borderCss(edges.left), borderRight: borderCss(edges.right), borderBottom: borderCss(edges.bottom) }}
         />
+      ) : null}
+      {diagUp || diagDown ? (
+        // Diagonal borders as an inline SVG (no url(), so a strict CSP needs nothing extra).
+        <svg className="xv-diagonals" aria-hidden="true" focusable="false" viewBox="0 0 100 100" preserveAspectRatio="none">
+          {diagUp ? <line x1="0" y1="100" x2="100" y2="0" vectorEffect="non-scaling-stroke" {...strokeOf(diagUp)} /> : null}
+          {diagDown ? <line x1="0" y1="0" x2="100" y2="100" vectorEffect="non-scaling-stroke" {...strokeOf(diagDown)} /> : null}
+        </svg>
       ) : null}
       {content !== null ? (
         <span className="xv-text" dir={cell?.style.align.direction === 'auto' ? 'auto' : cell?.style.align.direction} style={textStyle}>
