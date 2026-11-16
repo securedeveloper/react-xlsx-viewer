@@ -92,6 +92,21 @@ describe('grid in Chromium', () => {
     expect(document.querySelector<HTMLElement>('[data-r="0"][data-c="0"]')!.getBoundingClientRect().height).toBeCloseTo(40, 0);
   });
 
+  it('draws 1px borders inside the cell, and diagonal borders', async () => {
+    const thin = { style: 'thin' as const, color: 'FF0000' };
+    mount({ source: { sheets: [{ name: 'S', rows: [[{ value: 'a', style: { border: { top: thin, left: thin, right: thin, bottom: thin } } }, { value: 'X', style: { border: { diagonal: thin, diagonalUp: true, diagonalDown: true } } }]] }] } });
+    await nextFrame();
+    const cell = document.querySelector<HTMLElement>('[data-r="0"][data-c="0"]')!;
+    const edges = cell.querySelector<HTMLElement>('.xv-edges')!;
+    const c = cell.getBoundingClientRect();
+    const e = edges.getBoundingClientRect();
+    // The overlay lies within the cell box, so overflow: hidden doesn't clip the edge.
+    expect(e.top).toBeGreaterThanOrEqual(c.top);
+    expect(e.left).toBeGreaterThanOrEqual(c.left);
+    expect(getComputedStyle(edges).borderTopWidth).toBe('1px');
+    expect(document.querySelectorAll('[data-r="0"][data-c="1"] .xv-diagonals line').length).toBe(2);
+  });
+
   it('shows #### for a number that does not fit (measured text)', async () => {
     mount({ source: { sheets: [{ name: 'S', rows: [[{ value: 123456789012345, style: { numFmt: '#,##0' } }]], colProps: [{ width: 4 }] }] } });
     await nextFrame();
