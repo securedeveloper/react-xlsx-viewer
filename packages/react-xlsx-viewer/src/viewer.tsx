@@ -35,10 +35,11 @@ import { address, cellCount, equalSelection, single, type Selection } from './se
 import { useWorkbook, type UseWorkbookOptions, type WorkbookSource } from './use-workbook';
 
 /**
- * Above this many cells, copy refuses with a message. Set from the Performance harness (docs/api.md §9):
- * building TSV + HTML for 100,000 cells took 174 ms in Chromium, under the 200 ms "good" INP threshold.
+ * Above this many cells, copy refuses with a message. Set from the Performance harness (docs/api.md §9.1):
+ * building TSV + HTML for 50,000 cells took 153 ms on a GitHub Actions runner (87 ms locally), under the
+ * 200 ms "good" INP threshold; 100,000 cells took 249–302 ms there.
  */
-export const COPY_LIMIT = 100_000;
+export const COPY_LIMIT = 50_000;
 /** The status-bar summary scans at most this many cells (docs/api.md §12 Q12); 1,000,000 cells took 19 ms in the harness. */
 export const STATS_LIMIT = 1_000_000;
 const ZOOM_STEPS = [10, 25, 50, 75, 90, 100, 110, 125, 150, 175, 200, 250, 300, 400];

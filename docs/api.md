@@ -515,7 +515,7 @@ Targets are stated as **measurable goals**. Where a threshold is a public guidel
 | Main thread stays free while loading | Longest task on the main thread between "file chosen" and "first cells painted" | No long animation frame (> 50 ms) while opening a file; XLV-3 baseline: none for 500,000 cells (§9.1) | Long Animation Frames API |
 | Time to first cells | "File chosen" mark → first grid paint | Reported per fixture size; XLV-3 baseline in §9.1 | `performance.now()` around mount, until the grid is painted |
 | Memory | JS heap after load over the engine's reader heap for the same file (engine §5.2: 94–275 bytes per cell) | Render-model overhead O(rows + cols + distinct styles + rendered cells), not O(cells); exact bound [placeholder] | `performance.measureUserAgentSpecificMemory` (cross-origin isolated test page) or CDP heap metrics |
-| Copy doesn't freeze | Time to build TSV + HTML for the copy limit | ≤ 200 ms (INP "good"), which set `COPY_LIMIT` to 100,000 cells (174 ms) | Harness |
+| Copy doesn't freeze | Time to build TSV + HTML for the copy limit | ≤ 200 ms (INP "good") on the CI runner, which set `COPY_LIMIT` to 50,000 cells (153 ms there) | Harness |
 | Bundle size | Minified + gzipped size of `XlsxViewer` with its engine imports | Reported per PR; XLV-3 baseline 30.3 KiB gzipped initially, 56.7 KiB with the lazily loaded reader (§9.1). A budget follows once the viewer is feature-complete | `scripts/bundle-size.mjs` (Vite, React external) in the `Performance` job |
 
 **Fixtures** come from the engine's corpus generator (`test/fixtures/read/generate_corpus.py`): dense numbers, unique strings, heavily styled, many merges, wide (16k columns), tall (1M rows), RTL, frozen and hidden rows/columns. They are generated in CI, not committed.
@@ -524,30 +524,37 @@ Targets are stated as **measurable goals**. Where a threshold is a public guidel
 
 ### 9.1 Measured in XLV-3
 
-`npm run perf -w react-xlsx-viewer` (`test/perf`, Vitest browser mode in Chromium; the CI job `Performance` runs it and reports to its summary). The fixture is a 2,000,000-cell workbook (200,000 rows × 10 columns) with shared styles, a frozen row and column, merges and hidden rows; the viewport is 1280 × 800 and the viewer 1200 × 700. Measured locally in headless Chromium 150 on an Apple M2 laptop, 2026-11-16. Times are ms, p50 / p95 / max.
+`npm run perf -w react-xlsx-viewer` (`test/perf`, Vitest browser mode in Chromium; the CI job `Performance` runs it and reports to its summary). The fixture is a 2,000,000-cell workbook (200,000 rows × 10 columns) with shared styles, a frozen row and column, merges and hidden rows; the viewport is 1280 × 800 and the viewer 1200 × 700. "Local" is headless Chromium 150 on an Apple M2 laptop. "CI" is two runs of the `Performance` job on GitHub's `ubuntu-latest`, whose shared runners vary noticeably from run to run. Measured 2026-11-16. Times are ms, p50 / p95 / max.
 
-| Measure | Result |
-|---|---|
-| Scroll frames (vertical, horizontal, diagonal) | 16.7 / 17.2–17.6 / 17.7; 0 dropped frames (> 25 ms); 0 long animation frames |
-| React commit while scrolling | 3.7 / 8.7 / 22.7 |
-| Rendered gridcells | at most 820, for the 2,000,000-cell sheet |
-| Arrow key → next frame | 16.7 / 17.4 / 17.7 |
-| Shift+arrow / click → next frame | 16.7 / 17.5 / 24.9; 16.6 / 17.0 / 17.2 |
-| PageDown → next frame | 29.7 / 52.7 / 57.4 (a whole new window of rows mounts) |
-| Ctrl+arrow, Ctrl+Home/End → next frame | 28.9 / 40.8 / 40.8 |
-| First cells, 2,000,000-cell workbook object | 145 ms |
-| Open a 2.7 MB `.xlsx` (500,000 cells) on the main thread | 442 ms to the grid; no long animation frame |
-| Copy, TSV + HTML | 10,000 cells 20 ms; 100,000 cells 174 ms; 500,000 cells 851 ms |
-| Selection summary (`rangeStats`) | 100,000 cells 4 ms; 1,000,000 cells 19 ms; 2,000,000 cells 66 ms |
-| Bundle (Vite, minified + gzip, React external) | 96.8 / 30.3 KiB initially (viewer, render model, number formats); 184.1 / 56.7 KiB with the lazily loaded reader and CSV parser; `styles.css` 8.4 / 2.3 KiB |
+| Measure | Local | CI (two runs) |
+|---|---|---|
+| Scroll frames, vertical | 16.7 / 17.2 / 17.7; 0 dropped | 16.7 / 16.8 / 16.8, 0 dropped; 16.7 / 33.3 / 33.4, 20 of 300 dropped |
+| Scroll frames, diagonal | 16.7 / 17.2 / 17.6; 0 dropped | 4 and 9 of 200 dropped |
+| Long animation frames while scrolling | 0 | — |
+| React commit while scrolling | 3.7 / 8.7 / 22.7 | 4.9 / 10 / 22.1; 7.9 / 15.1 / 30.4 |
+| Rendered gridcells | at most 820, for 2,000,000 cells | 820 |
+| Arrow key → next frame | 16.7 / 17.4 / 17.7 | 16.7 / 18.1–18.9 / ≤ 22.3 |
+| Shift+arrow, click → next frame | ≤ 17.5 p95 | ≤ 25.6 p95 |
+| PageDown → next frame | 29.7 / 52.7 / 57.4 | 27.8–43.3 / 53.5–69.1 / ≤ 77.7 |
+| Ctrl+arrow, Ctrl+Home/End → next frame | 28.9 / 40.8 / 40.8 | p95 74.8–101.9 |
+| First cells, 2,000,000-cell workbook object | 145 | 211–266 |
+| Open a 2.7 MB `.xlsx` (500,000 cells) on the main thread | 442 to the grid; no long animation frame | 584–828; no long animation frame |
+| Copy, TSV + HTML | 10k 20; 100k 174; 500k 851 | 10k 30–39; 50k 153; 100k 249–302; 500k 1,333–1,622 |
+| Selection summary (`rangeStats`) | 1M cells 19 | 1M cells 17–22 |
+| Bundle (Vite, minified + gzip, React external) | 96.8 / 30.3 KiB initially (viewer, render model, number formats); 184.1 / 56.7 KiB with the lazily loaded reader and CSV parser; `styles.css` 8.4 / 2.3 KiB | same |
 
-What the measurements set:
-- **Overscan:** 6 rows and 3 columns, with no dropped frames.
-- **`COPY_LIMIT`:** 100,000 cells, the largest round size under 200 ms.
-- **`STATS_LIMIT`:** 1,000,000 cells, 19 ms.
+**What the measurements set:**
+- **Overscan:** 6 rows and 3 columns. Locally no frames are dropped, and on CI they drop only in the noisier run.
+- **`COPY_LIMIT`:** 50,000 cells, under 200 ms on the CI runner.
+- **`STATS_LIMIT`:** 1,000,000 cells, at most 22 ms.
 - **Worker:** stays optional (§6.1).
+- **Keyboard and click:** every interaction stays well under the 200 ms INP "good" threshold on both machines.
 
-Two changes came from the harness. Rows are memoised, so scrolling renders only the rows that enter the window; before that, the p95 frame was 33 ms. And a zoom-unit bug was found in the browser that jsdom couldn't show; a browser test now covers it.
+**Changes the harness forced:**
+- **Rows are memoised,** so scrolling renders only the rows that enter the window. Before that, the local p95 frame was 33 ms.
+- **A zoom-unit bug** was found in the browser that jsdom couldn't show; a browser test now covers it.
+
+**Scroll smoothness on CI** depends on the runner. The `Performance` job is therefore non-required and reports rather than gates, as planned. Gating can compare against `main`'s own runs once enough of them exist.
 
 **Canvas decision rule.** If the scroll and INP goals can't be met by the DOM grid on the largest fixtures after profiling, a canvas renderer is evaluated with an ARIA grid overlay, and its design is a separate document. Until then, DOM.
 

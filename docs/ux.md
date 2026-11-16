@@ -98,7 +98,7 @@ Every key in this table is listed in a "Keyboard shortcuts" dialog, opened from 
   - `text/html`: a `<table>` with basic inline styles.
 
   Pasting into another spreadsheet, a document or an email keeps the layout.
-- **Size limit.** Above 100,000 cells (`COPY_LIMIT`, api.md §9.1) the viewer refuses with a message in the status bar: building the clipboard data would take longer than 200 ms. Asking first, and copying larger ranges in the background, may come later.
+- **Size limit.** Above 50,000 cells (`COPY_LIMIT`, api.md §9.1) the viewer refuses with a message in the status bar: building the clipboard data would take longer than 200 ms. Asking first, and copying larger ranges in the background, may come later.
 - **Confirmation.** A short "Copied 12 cells" appears in the status bar. It is announced politely (§7).
 - **No paste and no cut.** This is a read-only viewer.
 
