@@ -23,6 +23,7 @@ const lines = [
   `| Ctrl+arrow / Ctrl+Home/End → next frame | ${f(r.keyboard.ctrlJumps)} | ≤ 200 ms |`,
   `| Shift+arrow → next frame | ${f(r.keyboard.shiftExtend)} | ≤ 200 ms |`,
   `| Click → next frame | ${f(r.click)} | ≤ 200 ms |`,
+  `| Scroll frames with auto-fit (every row wraps, ${r.autoFit ? r.autoFit.rows.toLocaleString('en-US') : 'n/a'} rows) | ${r.autoFit ? `${f(r.autoFit.frames)}, ${r.autoFit.droppedFrames} dropped; commit ${f(r.autoFit.commitMs)}; long frames ${r.autoFit.longAnimationFrames}` : 'n/a'} | p95 one frame |`,
   `| First cells, 2,000,000-cell workbook object | ${r.firstCells.mountToFirstPaintMs} ms | — |`,
   `| Open a ${(r.openXlsx.fileBytes / 1e6).toFixed(1)} MB .xlsx (${r.openXlsx.cells.toLocaleString('en-US')} cells), main thread | ${r.openXlsx.toGridMs} ms to the grid; longest frame ${r.openXlsx.longestFrameMs ?? 'none over 50 ms'} | no long tasks |`,
   `| Open the same file through a worker (\`worker\` prop) | ${r.openXlsxWorker?.toGridMs ?? 'n/a'} ms to the grid; longest frame ${r.openXlsxWorker?.longestFrameMs ?? 'none over 50 ms'} | no long tasks |`,

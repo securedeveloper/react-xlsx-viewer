@@ -149,4 +149,60 @@ describe('grid in Chromium', () => {
     await nextFrame();
     expect(document.querySelector('[data-r="0"][data-c="0"]')!.textContent).toMatch(/^#+$/);
   });
+  describe('auto-fit rows (issue #14)', () => {
+    const rowH = (r: number): number => document.querySelector<HTMLElement>(`[data-r="${r}"][data-c="0"]`)!.getBoundingClientRect().height;
+    const long = 'one two three four five six seven eight nine ten eleven twelve';
+
+    it('grows rows without a stored height to wrapped, larger and rotated text; leaves the rest alone', async () => {
+      mount({
+        source: {
+          sheets: [{
+            name: 'S',
+            rows: [
+              ['plain'],
+              [{ value: long, style: { alignment: { wrapText: true } } }],
+              [{ value: 'Big', style: { font: { size: 28 } } }],
+              [{ value: 'Rotated text', style: { alignment: { rotation: 90 } } }],
+              [{ value: long, style: { alignment: { wrapText: true } } }],
+              [{ value: 'Stacked', style: { alignment: { rotation: 'vertical' } } }],
+            ],
+            rowProps: [undefined, undefined, undefined, undefined, { height: 15 }],
+            colProps: [{ width: 12 }],
+          }],
+        },
+      });
+      await nextFrame();
+      await nextFrame();
+      expect(rowH(0)).toBeCloseTo(20, 0); // default
+      expect(rowH(1)).toBeGreaterThan(50); // several wrapped lines
+      expect(rowH(2)).toBeGreaterThan(40); // 28 pt is 37.3 px, line height 1.2
+      expect(rowH(3)).toBeGreaterThan(60); // the rotated box is as tall as the text is long
+      expect(rowH(4)).toBeCloseTo(20, 0); // a stored height wins
+      expect(rowH(5)).toBeGreaterThan(60); // stacked letters
+      // The wrapped text fits: nothing is cut off.
+      const text = document.querySelector<HTMLElement>('[data-r="1"][data-c="0"] .xv-text')!;
+      expect(text.getBoundingClientRect().height).toBeLessThanOrEqual(rowH(1) + 0.5);
+    });
+
+    it('keeps the row at the top in place when rows around the viewport grow', async () => {
+      // Rows 0–199 have a stored height (20 px, never auto-fitted); rows from 200 on wrap and grow when they are rendered.
+      const rows = Array.from({ length: 400 }, () => [{ value: long, style: { alignment: { wrapText: true } } }]);
+      const rowProps = Array.from({ length: 200 }, () => ({ height: 15 }));
+      const el = mount({ source: { sheets: [{ name: 'S', rows, rowProps, colProps: [{ width: 12 }] }] } });
+      await nextFrame();
+      const scroller = el.querySelector<HTMLElement>('.xv-scroll')!;
+      // Before the jump every row is 20 px, so this position puts row 250 at the top, 7 px into it.
+      scroller.scrollTop = 250 * 20 + 7;
+      for (let i = 0; i < 4; i++) await nextFrame();
+      const line = scroller.getBoundingClientRect().top + 20; // just below the column headers
+      const top = [...el.querySelectorAll<HTMLElement>('.xv-body [data-c="0"]')].find((c) => {
+        const b = c.getBoundingClientRect();
+        return b.top <= line + 0.5 && b.bottom > line + 0.5;
+      })!;
+      // The rows in the overscan above it grew too, yet row 250 is still at the top, 7 px into it.
+      expect(Number(top.dataset['r'])).toBe(250);
+      expect(rowH(250)).toBeGreaterThan(40);
+      expect(line - top.getBoundingClientRect().top).toBeCloseTo(7, 0);
+    });
+  });
 });

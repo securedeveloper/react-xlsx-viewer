@@ -213,7 +213,7 @@ All colours in the render model are concrete `#RRGGBB` strings, resolved with `r
 
 ### 3.2 What the render model leaves to the DOM layer
 
-- **Text measurement.** Overflow of long text into empty neighbours, `####` for numbers that don't fit, shrink-to-fit and auto-fit row heights for wrapped text without a stored height all need font metrics. The DOM layer measures with canvas `measureText` (an `OffscreenCanvas` where available) and caches by `(font, text)`.
+- **Text measurement.** Overflow of long text into empty neighbours, `####` for numbers that don't fit, shrink-to-fit and auto-fit row heights for wrapped text without a stored height all need font metrics. The DOM layer measures with canvas `measureText` (an `OffscreenCanvas` where available) and caches by `(font, text)`. Auto-fit measures the rendered cells' laid-out text instead (wrapped lines, rotation and stacked text included) and passes the heights to `setRowHeights` in `javascript-excel/render`.
 - **RTL mirroring.** The model works in logical columns, and the DOM layer mirrors. This keeps hit testing and navigation identical in both directions.
 - **Zoom.** The model returns sizes at 100 %. The DOM layer multiplies sizes and font sizes by `zoom / 100` ([§7.4](#74-zoom)).
 
@@ -543,6 +543,7 @@ Targets are stated as **measurable goals**. Where a threshold is a public guidel
 | Selection summary (`rangeStats`) | 1M cells 19 | 1M cells 17–22 |
 | Open the 2.7 MB `.xlsx` through a worker (`worker` prop, XLV-4) | 636 to the grid; no long animation frame | — |
 | Worker read of that file: main-thread frames while it runs (XLV-4) | 16.7 / 17.3 / 17.4; read 540 | — |
+| Scroll frames with auto-fit: 20,000 rows, every row wraps (XLV-5) | 16.7 / 17 / 17.6, 0 dropped; commit 1.2 / 8.4 / 11; no long animation frame | 16.7 / 16.8 / 33.4, 11 of 300 dropped; commit 1.7 / 9.7 / 17.3; no long animation frame (the same run's plain vertical scroll dropped 53 of 300) |
 | Memory, 500,000-cell file, JS heap after a full GC (XLV-4) | model 25.8 MB (54 bytes/cell); render model ≈ 0 MB of JS heap (its offset tables are ArrayBuffers, about 8 bytes per row and column); mounted viewer +3.3 MB; 0 MB retained after release | — |
 | Bundle (Vite, minified + gzip, React external) | 96.8 / 30.3 KiB initially (viewer, render model, number formats); 184.1 / 56.7 KiB with the lazily loaded reader and CSV parser; `styles.css` 8.4 / 2.3 KiB | same |
 
@@ -665,7 +666,12 @@ Each question had a recommendation, and Afzal accepted all sixteen on 2026-11-16
 
 **Q11. Rows with wrapped text and no stored height.** Excel auto-fits them on open.
 - *Decided (2026-11-16):* auto-fit by measurement for those rows only, inside the rendered window, and adjust the offsets when they come into view. Rows with a stored height always use it.
-- *Risk:* scroll positions shift as rows are measured. XLV-3 measures how noticeable that is.
+- *Risk:* scroll positions shift as rows are measured.
+- *Implemented (XLV-5, #14):*
+  - **Measuring.** After each render, the grid measures cells it hasn't measured yet, in rows without a stored height. Rows only grow, from the default up to 409 pt, and merged cells are skipped, as in Excel.
+  - **The shift.** The row at the top of the scrolling pane stays in place: when rows above it grow, the grid moves the scroll position by the same amount. Native `overflow-anchor` is off, so every browser behaves the same.
+  - **Rotated text** turns about the cell's centre and isn't clipped to the column first.
+  - **Cost.** The Performance harness scrolls a 20,000-row sheet where every row wraps (row "Scroll frames with auto-fit" in §9.1).
 
 **Q12. Status-bar aggregates.**
 - *Decided (2026-11-16):* count, numeric count, sum and average of the selection's cached values, computed up to a limit (1,000,000 cells, 19 ms in the harness, §9.1), with "≥" shown past it. This is arithmetic on cached values, not formula evaluation.

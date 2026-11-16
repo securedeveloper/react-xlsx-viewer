@@ -27,6 +27,7 @@ import {
   colLeft,
   colWidth,
   edge,
+  hasStoredRowHeight,
   isColHidden,
   isRowHidden,
   lastUsedCell,
@@ -35,6 +36,7 @@ import {
   rowAt,
   rowHeight,
   rowTop,
+  setRowHeights,
   sheetExtent,
   step,
   type CellRef,
@@ -227,7 +229,14 @@ const CellView = memo(function CellView(p: CellViewProps): ReactElement {
     // Superscript/subscript for the whole cell: smaller and shifted (vertical-align has no effect on a flex item).
     if (f.vertAlign !== 'baseline') Object.assign(textStyle, { fontSize: fontSizePx * 0.75, position: 'relative', top: f.vertAlign === 'superscript' ? '-0.35em' : '0.25em' });
     if (a.rotation === 'vertical') Object.assign(textStyle, { writingMode: 'vertical-rl', textOrientation: 'upright' });
-    else if (a.rotation) textStyle.transform = `rotate(${-a.rotation}deg)`;
+    else if (a.rotation) {
+      // Rotated text keeps its full length (it is not clipped to the column before turning) and turns about the cell's centre,
+      // so auto-fit can grow the row to the rotated box (issue #14).
+      textStyle.transform = `rotate(${-a.rotation}deg)`;
+      if (!a.wrap) Object.assign(textStyle, { maxWidth: 'none', flexShrink: 0 });
+      style.justifyContent = 'center';
+      style.alignItems = 'center';
+    }
     // A spilling text keeps its full width: as a flex item it would otherwise shrink back to the cell.
     if (p.spill > 0) Object.assign(textStyle, { width: p.width + p.spill - 6 * z, flexShrink: 0, overflow: 'hidden' });
     let text = cell.text;
@@ -420,6 +429,52 @@ export const Grid: ForwardRefExoticComponent<GridProps & RefAttributes<GridHandl
   }, [props]);
   useEffect(() => () => cancelAnimationFrame(frame.current), []);
 
+  // Auto-fit (decision Q11, issue #14): after a render, measure the rendered cells of rows without a stored
+  // height that haven't been measured, and grow those rows to their content (wrapped, larger, rotated or
+  // stacked text). Merged cells are skipped, as in Excel. Heights go to the render model at zoom 100 %.
+  // Without layout (jsdom, SSR) the measured sizes are 0 and nothing changes.
+  const [geometry, setGeometry] = useState(0);
+  const measured = useMemo(() => new Set<string>(), [rs]);
+  // The row at the top of the scrolling pane and how far into it, kept in place while rows above it grow.
+  const anchor = useRef<{ row: number; offset: number } | null>(null);
+  useIsoLayoutEffect(() => {
+    const el = scroller.current;
+    const grid = gridEl.current;
+    if (!el || !grid) return;
+    if (anchor.current) {
+      // The canvas has grown by now, so the new scroll position is reachable.
+      const next = Math.round((rowTop(rs, anchor.current.row) + anchor.current.offset - rowTop(rs, fr)) * z);
+      anchor.current = null;
+      if (next !== el.scrollTop) {
+        el.scrollTop = next;
+        // Render the window at the new position now, not a frame later from the scroll event, so rows above it aren't measured in passing.
+        const pos = { top: el.scrollTop, left: Math.abs(el.scrollLeft) };
+        setScroll((sc) => (sc.top === pos.top && sc.left === pos.left ? sc : pos));
+      }
+    }
+    const grow = new Map<number, number>();
+    for (const cellEl of grid.querySelectorAll<HTMLElement>('.xv-cell')) {
+      const key = `${cellEl.dataset['r']}:${cellEl.dataset['c']}`;
+      if (measured.has(key)) continue;
+      measured.add(key);
+      const r = Number(cellEl.dataset['r']);
+      if (cellEl.hasAttribute('aria-rowspan') || cellEl.hasAttribute('aria-colspan') || hasStoredRowHeight(rs, r)) continue;
+      const text = cellEl.querySelector<HTMLElement>('.xv-text');
+      if (!text) continue;
+      // The box after any rotation, or the content when it is stretched to the cell (vertical justify).
+      const h = Math.max(text.getBoundingClientRect().height, text.scrollHeight) / z;
+      if (h > rowHeight(rs, r) + 0.5) grow.set(r, Math.max(grow.get(r) ?? 0, Math.ceil(h)));
+    }
+    if (grow.size === 0) return;
+    const y = el.scrollTop / z + rowTop(rs, fr);
+    const top = rowAt(rs, y);
+    const offset = y - rowTop(rs, top);
+    if (setRowHeights(rs, [...grow])) {
+      if (el.scrollTop > 0) anchor.current = { row: top, offset };
+      setGeometry((g) => g + 1);
+    }
+  });
+
   // The rendered window.
   const win: Window = useMemo(() => {
     const [r0, r1] = visibleRange((y) => rowAt(rs, y), (scroll.top + frozenH) / z, (scroll.top + view.height - headerH) / z, fr, ext.rows, OVERSCAN.rows);
@@ -441,7 +496,7 @@ export const Grid: ForwardRefExoticComponent<GridProps & RefAttributes<GridHandl
       if (m && m.anchor.col < c0 && m.anchor.col >= fc) cols.add(m.anchor.col);
     }
     return { rows: [...rows].sort((a, b) => a - b), cols: [...cols].sort((a, b) => a - b) };
-  }, [rs, scroll, view, z, fr, fc, frozenH, frozenW, headerH, headerW, ext.rows, ext.cols, selection.active.row, selection.active.col]);
+  }, [rs, geometry, scroll, view, z, fr, fc, frozenH, frozenW, headerH, headerW, ext.rows, ext.cols, selection.active.row, selection.active.col]);
 
   const frozenCols = useMemo(() => Array.from({ length: fc }, (_, c) => c).filter((c) => !isColHidden(rs, c)), [rs, fc]);
   const frozenRows = useMemo(() => Array.from({ length: fr }, (_, r) => r).filter((r) => !isRowHidden(rs, r)), [rs, fr]);
@@ -701,7 +756,7 @@ export const Grid: ForwardRefExoticComponent<GridProps & RefAttributes<GridHandl
   };
 
   // What a row's rendering depends on besides its index: the shared context, its columns and its part of the selection.
-  const ctx = useMemo(() => ({}), [rs, z, fc, headerW, props.showGridLines, props.fonts, idBase, labels, props.activeDescription, multi, rtl, showHeaders]);
+  const ctx = useMemo(() => ({}), [rs, geometry, z, fc, headerW, props.showGridLines, props.fonts, idBase, labels, props.activeDescription, multi, rtl, showHeaders]);
   const colsKey = win.cols.join(',');
   const selKey = (r: number): string => {
     let k = '';
