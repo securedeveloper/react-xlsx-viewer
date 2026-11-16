@@ -102,7 +102,8 @@
 .xv-progress-bar { height: 100%; background: var(--xv-accent); }
 
 /* Grid */
-.xv-scroll { flex: 1; overflow: auto; position: relative; background: var(--xv-sheet-bg); color: var(--xv-sheet-fg); outline: none; }
+/* The grid keeps the top row in place itself when rows grow (auto-fit), the same way in every browser, so native scroll anchoring is off. */
+.xv-scroll { flex: 1; overflow: auto; overflow-anchor: none; position: relative; background: var(--xv-sheet-bg); color: var(--xv-sheet-fg); outline: none; }
 .xv-canvas { position: relative; }
 .xv-grid { position: relative; }
 .xv-top { position: sticky; top: 0; z-index: 4; }

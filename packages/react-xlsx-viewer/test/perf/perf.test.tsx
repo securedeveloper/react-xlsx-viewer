@@ -111,6 +111,43 @@ it('measures the viewer', async () => {
   root.unmount();
   host.remove();
 
+  // 4b. Auto-fit (issue #14): scrolling a sheet where every row wraps, so each row entering the window is measured and grows.
+  {
+    const long = 'Auto-fit measures this wrapped text and grows the row to fit it';
+    const rows = Array.from({ length: 20_000 }, (_, r) => Array.from({ length: 10 }, (_, c) => (c < 3 ? { value: `${r + 1} ${long}`, style: { alignment: { wrapText: true } } } : r * 10 + c)));
+    const fitHost = document.createElement('div');
+    fitHost.style.cssText = 'width: 1200px; height: 700px;';
+    document.body.append(fitHost);
+    const fitRoot = createRoot(fitHost);
+    const fitCommits: number[] = [];
+    flushSync(() => fitRoot.render(createElement(Profiler, { id: 'fit', onRender: (_id: string, _phase: string, actual: number) => fitCommits.push(actual) }, createElement(XlsxViewer, { source: { sheets: [{ name: 'Fit', rows, colProps: [{ width: 14 }, { width: 14 }, { width: 14 }] }] }, style: { height: '100%' }, locale: 'en-US' }))));
+    while (!fitHost.querySelector('[role="gridcell"]')) await frame();
+    await frame();
+    const fitScroller = fitHost.querySelector<HTMLElement>('.xv-scroll')!;
+    const deltas: number[] = [];
+    fitCommits.length = 0;
+    longFrames.length = 0;
+    let last = await frame();
+    for (let i = 0; i < 300; i++) {
+      fitScroller.scrollTop += 120;
+      const now = await frame();
+      deltas.push(now - last);
+      last = now;
+    }
+    const rowHeights = [...fitHost.querySelectorAll<HTMLElement>('.xv-body [role="row"]')].map((r) => r.getBoundingClientRect().height);
+    results['autoFit'] = {
+      rows: 20_000,
+      frames: stat(deltas),
+      droppedFrames: dropped(deltas),
+      commitMs: stat(fitCommits.length ? fitCommits : [0]),
+      longAnimationFrames: lofSupported ? longFrames.length : 'unsupported',
+      grownRowPx: stat(rowHeights),
+    };
+    expect(Math.min(...rowHeights)).toBeGreaterThan(20);
+    fitRoot.unmount();
+    fitHost.remove();
+  }
+
   // 5. Copy cost by size (sets COPY_LIMIT).
   const rs = createRenderSheet(wb, 0);
   const copy: Array<{ cells: number; ms: number }> = [];
