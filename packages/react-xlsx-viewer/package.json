@@ -1,0 +1,75 @@
+{
+  "name": "react-xlsx-viewer",
+  "version": "0.0.1",
+  "description": "Render .xlsx and .csv workbooks in React: styles, merged cells, frozen panes, sheet tabs and formulas. Built on javascript-excel. (Planned — not usable yet.)",
+  "license": "MIT",
+  "author": "Afzal Ahmad",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/securedeveloper/react-xlsx-viewer.git",
+    "directory": "packages/react-xlsx-viewer"
+  },
+  "bugs": {
+    "url": "https://github.com/securedeveloper/react-xlsx-viewer/issues"
+  },
+  "homepage": "https://github.com/securedeveloper/react-xlsx-viewer#readme",
+  "keywords": [
+    "react",
+    "excel",
+    "xlsx",
+    "csv",
+    "spreadsheet",
+    "viewer"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.cts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "peerDependencies": {
+    "react": ">=18 <20",
+    "react-dom": ">=18 <20"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:browser": "vitest run --config vitest.browser.config.ts",
+    "lint:pkg": "publint --strict && attw --pack ."
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitest/browser-playwright": "^5.1.0",
+    "jsdom": "^31.0.1",
+    "playwright": "^1.65.1",
+    "publint": "^0.3.25",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "tsdown": "^0.23.7",
+    "vitest": "^5.1.0"
+  }
+}
