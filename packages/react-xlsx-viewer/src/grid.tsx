@@ -152,6 +152,14 @@ export function patternCss(pattern: string, fg: string, bg: string): CSSProperti
   }
 }
 
+/** A link cell's hover text: the file's tooltip, else where it goes (Excel shows the address on hover). */
+function linkTitle(cell: RenderCell | null): string | undefined {
+  const h = cell?.hyperlink;
+  if (!h) return undefined;
+  if (h.tooltip) return h.tooltip;
+  return h.kind === 'external' ? h.href : h.ref;
+}
+
 const H_ALIGN: Record<string, CSSProperties['justifyContent']> = { left: 'flex-start', center: 'center', right: 'flex-end' };
 const V_ALIGN: Record<string, CSSProperties['alignItems']> = { top: 'flex-start', center: 'center', bottom: 'flex-end', justify: 'stretch', distributed: 'stretch' };
 
@@ -170,6 +178,8 @@ interface CellViewProps {
   outline: string;
   sticky: number | null;
   gridLines: boolean;
+  /** Divider sides between frozen and scrolling panes: 'b' (below the last frozen row), 'r' (after the last frozen column). */
+  frozenEdge: string;
   /** The sheet is right-to-left: general-aligned text starts on the right. */
   rtl: boolean;
   fonts: Readonly<Record<string, string>> | undefined;
@@ -265,6 +275,9 @@ const CellView = memo(function CellView(p: CellViewProps): ReactElement {
   }
   const filled = cell !== null && cell.style.background.kind !== 'none';
   if (p.gridLines && !filled) shadows.push('inset -1px -1px 0 var(--xv-gridline)');
+  // The frozen-pane divider: a slightly heavier line, as spreadsheet programs draw it (docs/ux.md §2).
+  if (p.frozenEdge.includes('b')) shadows.push('inset 0 -2px 0 var(--xv-frozen-line)');
+  if (p.frozenEdge.includes('r')) shadows.push(`inset ${p.rtl ? '' : '-'}2px 0 0 var(--xv-frozen-line)`);
   if (shadows.length) style.boxShadow = shadows.join(', ');
   const edges = cell?.edges;
   const hasEdges = edges && (edges.top || edges.left || edges.right || edges.bottom);
@@ -282,7 +295,8 @@ const CellView = memo(function CellView(p: CellViewProps): ReactElement {
       tabIndex={p.active ? 0 : -1}
       data-r={p.row}
       data-c={p.col}
-      className={`xv-cell${p.active ? ' xv-active' : ''}${p.selected && !p.active ? ' xv-selected' : ''}${p.spill > 0 ? ' xv-spill' : ''}${cell?.noCachedValue ? ' xv-nocache' : ''}`}
+      className={`xv-cell${p.active ? ' xv-active' : ''}${p.selected && !p.active ? ' xv-selected' : ''}${p.spill > 0 ? ' xv-spill' : ''}${cell?.noCachedValue ? ' xv-nocache' : ''}${cell?.hyperlink ? ' xv-link' : ''}`}
+      title={linkTitle(cell)}
       style={style}
     >
       {hasEdges ? (
@@ -651,6 +665,7 @@ export const Grid: ForwardRefExoticComponent<GridProps & RefAttributes<GridHandl
             sticky={sticky ? headerW + left * z : null}
             gridLines={props.showGridLines}
             rtl={rtl}
+            frozenEdge={`${r === fr - 1 ? 'b' : ''}${c === fc - 1 ? 'r' : ''}`}
             fonts={props.fonts}
             id={`${idBase}-${r}-${c}`}
             describedBy={isActive && props.activeDescription ? `${idBase}-desc` : undefined}
@@ -706,7 +721,7 @@ export const Grid: ForwardRefExoticComponent<GridProps & RefAttributes<GridHandl
         key="corner"
         role="columnheader"
         aria-colindex={1}
-        aria-label={labels.allSheets}
+        aria-label={labels.selectAll}
         className="xv-corner"
         style={{ width: headerW, minWidth: headerW, height: headerH, insetInlineStart: 0 }}
         onPointerDown={(e) => {

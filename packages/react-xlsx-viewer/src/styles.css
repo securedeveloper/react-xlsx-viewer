@@ -17,6 +17,7 @@
   --xv-sheet-bg: #ffffff;
   --xv-sheet-fg: #000000;
   --xv-gridline: #e1e1e6;
+  --xv-frozen-line: #8a8a96;
   --xv-selection: rgba(79, 79, 179, 0.14);
   --xv-selection-line: #4f4fb3;
   --xv-focus: #4f4fb3;
@@ -118,6 +119,7 @@
 }
 .xv-top .xv-cell { background: var(--xv-sheet-bg); }
 .xv-cell.xv-spill { overflow: visible; }
+.xv-cell.xv-link { cursor: pointer; }
 .xv-text { overflow: hidden; line-height: 1.2; max-width: 100%; }
 .xv-spill .xv-text { max-width: none; }
 /* Borders are drawn inside the cell box: cells clip their overflow, so an edge outside it would vanish. */
