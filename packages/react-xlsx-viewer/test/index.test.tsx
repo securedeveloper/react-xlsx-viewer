@@ -7,6 +7,7 @@ import { version as reactDomVersion } from 'react-dom';
 import { toUint8Array, type CellInput, type Workbook } from 'javascript-excel';
 import pkg from '../package.json';
 import { DEFAULT_LABELS, XlsxViewer, useWorkbook, version, type XlsxViewerHandle } from '../src/index';
+import { patternCss } from '../src/grid';
 
 const book = (): Workbook<CellInput> => ({
   sheets: [
@@ -150,6 +151,15 @@ describe('<XlsxViewer> grid', () => {
     act(() => ref.current!.scrollTo("'Costs'!A1"));
     expect(screen.getByRole('grid', { name: 'Sheet: Costs' })).toBeTruthy();
     expect(ref.current!.getWorkbook()).toBe(wb);
+  });
+});
+
+describe('pattern fills', () => {
+  it('each of the 17 non-solid patterns has its own CSS', () => {
+    const patterns = ['mediumGray', 'darkGray', 'lightGray', 'darkHorizontal', 'darkVertical', 'darkDown', 'darkUp', 'darkGrid', 'darkTrellis', 'lightHorizontal', 'lightVertical', 'lightDown', 'lightUp', 'lightGrid', 'lightTrellis', 'gray125', 'gray0625'];
+    const css = patterns.map((p) => JSON.stringify(patternCss(p, '#FF0000', '#FFFF00')));
+    expect(new Set(css).size).toBe(patterns.length);
+    for (const c of css) expect(c).not.toContain('url(');
   });
 });
 

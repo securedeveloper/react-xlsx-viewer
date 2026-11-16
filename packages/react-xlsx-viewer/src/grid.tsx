@@ -106,15 +106,50 @@ function strokeOf(b: RenderBorder): { stroke: string; strokeWidth: number; strok
 function backgroundCss(cell: RenderCell): CSSProperties {
   const bg = cell.style.background;
   if (bg.kind === 'solid') return { backgroundColor: bg.color };
-  if (bg.kind === 'pattern') {
-    // Patterns are approximated with CSS gradients (no url(), so no img-src needed under a strict CSP).
-    return { backgroundColor: bg.bg, backgroundImage: `repeating-linear-gradient(45deg, ${bg.fg} 0 1px, transparent 1px 4px)` };
-  }
+  if (bg.kind === 'pattern') return patternCss(bg.pattern, bg.fg, bg.bg);
   if (bg.kind === 'gradient') {
     const stops = bg.stops.map((s) => `${s.color} ${Math.round(s.position * 100)}%`).join(', ');
     return { backgroundImage: bg.gradient === 'path' ? `radial-gradient(${stops})` : `linear-gradient(${bg.degree + 90}deg, ${stops})` };
   }
   return {};
+}
+
+/**
+ * The 18 pattern fills as CSS gradients: stripes, grids, trellises and dot densities that look like
+ * Excel's patterns at 100 % (approximations; no url(), so no img-src is needed under a strict CSP).
+ */
+export function patternCss(pattern: string, fg: string, bg: string): CSSProperties {
+  // Straight stripes repeat every 4px; diagonal ones every 2√2px along the gradient, i.e. every 4px across, so they stay on the pixel grid.
+  const stripes = (deg: number, w: number): string => {
+    const diagonal = deg % 90 !== 0;
+    const period = diagonal ? 2.83 : 4;
+    const width = diagonal ? w * 0.71 : w;
+    return `repeating-linear-gradient(${deg}deg, ${fg} 0 ${width}px, transparent ${width}px ${period}px)`;
+  };
+  const dots = (pct: number, size: number): { backgroundImage: string; backgroundSize: string } => ({
+    backgroundImage: `radial-gradient(${fg} ${pct}%, transparent ${pct + 1}%)`,
+    backgroundSize: `${size}px ${size}px`,
+  });
+  switch (pattern) {
+    case 'darkHorizontal': return { backgroundColor: bg, backgroundImage: stripes(0, 2) };
+    case 'lightHorizontal': return { backgroundColor: bg, backgroundImage: stripes(0, 1) };
+    case 'darkVertical': return { backgroundColor: bg, backgroundImage: stripes(90, 2) };
+    case 'lightVertical': return { backgroundColor: bg, backgroundImage: stripes(90, 1) };
+    case 'darkDown': return { backgroundColor: bg, backgroundImage: stripes(45, 2) };
+    case 'lightDown': return { backgroundColor: bg, backgroundImage: stripes(45, 1) };
+    case 'darkUp': return { backgroundColor: bg, backgroundImage: stripes(-45, 2) };
+    case 'lightUp': return { backgroundColor: bg, backgroundImage: stripes(-45, 1) };
+    case 'darkGrid': return { backgroundColor: bg, backgroundImage: `${stripes(0, 2)}, ${stripes(90, 2)}` };
+    case 'lightGrid': return { backgroundColor: bg, backgroundImage: `${stripes(0, 1)}, ${stripes(90, 1)}` };
+    case 'darkTrellis': return { backgroundColor: bg, backgroundImage: `${stripes(45, 2)}, ${stripes(-45, 2)}` };
+    case 'lightTrellis': return { backgroundColor: bg, backgroundImage: `${stripes(45, 1)}, ${stripes(-45, 1)}` };
+    case 'darkGray': return { backgroundColor: fg, ...dots(30, 3), backgroundImage: `radial-gradient(${bg} 30%, transparent 31%)` }; // 75 %: background dots on foreground
+    case 'mediumGray': return { backgroundColor: bg, ...dots(45, 3) }; // 50 %
+    case 'lightGray': return { backgroundColor: bg, ...dots(30, 3) }; // 25 %
+    case 'gray125': return { backgroundColor: bg, ...dots(25, 4) }; // 12.5 %
+    case 'gray0625': return { backgroundColor: bg, ...dots(20, 6) }; // 6.25 %
+    default: return { backgroundColor: bg };
+  }
 }
 
 const H_ALIGN: Record<string, CSSProperties['justifyContent']> = { left: 'flex-start', center: 'center', right: 'flex-end' };
