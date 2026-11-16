@@ -205,6 +205,8 @@ const CellView = memo(function CellView(p: CellViewProps): ReactElement {
   }
   let content: ReactNode = null;
   let textStyle: CSSProperties | undefined;
+  /** Font scale for shrink-to-fit, 1 when the text fits. */
+  let shrink = 1;
   if (cell) {
     Object.assign(style, backgroundCss(cell));
     const f = cell.style.font;
@@ -243,7 +245,21 @@ const CellView = memo(function CellView(p: CellViewProps): ReactElement {
     if (p.spill > 0) Object.assign(textStyle, { width: p.width + p.spill - 6 * z, flexShrink: 0, overflow: 'hidden' });
     let text = cell.text;
     const font = `${f.italic ? 'italic ' : ''}${f.bold ? '700 ' : ''}${fontSizePx}px ${family}`;
-    if ((cell.type === 'number' || cell.type === 'date') && !a.wrap && text) {
+    if (a.shrink && !a.wrap && !a.rotation && text) {
+      // Shrink to fit (#15): scale the font so the text fits the cell's width, when the text can be measured
+      // (otherwise it clips). Rich text scales its runs by the same factor, measured in the cell's font.
+      // Text width isn't proportional to the font size at small sizes (glyph advances round), so measure again at the
+      // scaled size, a few times.
+      const avail = p.width - 6 * z - (a.indent ? a.indent * 9 * z : 0);
+      const at = (k: number): number | null => textWidth(text, `${f.italic ? 'italic ' : ''}${f.bold ? '700 ' : ''}${fontSizePx * k}px ${family}`);
+      let w = at(1);
+      for (let i = 0; i < 4 && w !== null && w > avail && avail > 0; i++) {
+        shrink = Math.floor(shrink * (avail / w) * 100) / 100;
+        w = at(shrink);
+      }
+    }
+    if (shrink < 1) textStyle.fontSize = (textStyle.fontSize as number) * shrink;
+    if ((cell.type === 'number' || cell.type === 'date') && !a.wrap && !a.shrink && text) {
       // Numbers that don't fit show as #### (Excel), when the text can be measured.
       const avail = p.width - 6 * z;
       const w = textWidth(text, font);
@@ -270,10 +286,10 @@ const CellView = memo(function CellView(p: CellViewProps): ReactElement {
             fontWeight: run.font.bold ? 700 : 400,
             fontStyle: run.font.italic ? 'italic' : 'normal',
             color: run.font.color,
-            fontSize: (run.font.sizePt * 96) / 72 * z,
+            fontSize: (run.font.sizePt * 96) / 72 * z * shrink,
             fontFamily: fontStack(run.font.family, p.fonts),
             textDecorationLine: [run.font.underline !== 'none' ? 'underline' : '', run.font.strike ? 'line-through' : ''].filter(Boolean).join(' ') || 'none',
-            ...(run.font.vertAlign !== 'baseline' ? { verticalAlign: run.font.vertAlign === 'superscript' ? 'super' : 'sub', fontSize: ((run.font.sizePt * 96) / 72) * z * 0.75 } : {}),
+            ...(run.font.vertAlign !== 'baseline' ? { verticalAlign: run.font.vertAlign === 'superscript' ? 'super' : 'sub', fontSize: ((run.font.sizePt * 96) / 72) * z * 0.75 * shrink } : {}),
           }}
         >
           {run.text}
@@ -700,7 +716,7 @@ export const Grid: ForwardRefExoticComponent<GridProps & RefAttributes<GridHandl
           while (i + 1 < cols.length && cols[i + 1]! < c + cell.merge.cols) i++;
         }
         let spill = 0;
-        if (cell && !cell.merge && !cell.style.align.wrap && (cell.type === 'string' || cell.type === 'richText') && cell.align === 'left' && cell.style.align.direction !== 'rtl' && (cell.style.align.horizontal === 'general' || cell.style.align.horizontal === 'left')) {
+        if (cell && !cell.merge && !cell.style.align.wrap && !cell.style.align.shrink && (cell.type === 'string' || cell.type === 'richText') && cell.align === 'left' && cell.style.align.direction !== 'rtl' && (cell.style.align.horizontal === 'general' || cell.style.align.horizontal === 'left')) {
           for (let j = i + 1; j < cols.length && cols[j] === cols[j - 1]! + 1; j++) {
             const next = renderCell(rs, r, cols[j]!);
             if (next && (next.text !== '' || next.merge)) break;
