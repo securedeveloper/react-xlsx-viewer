@@ -1,8 +1,18 @@
 # react-xlsx-viewer
 
-> **Status: in development.** The first version, a read-only viewer, is being built. 0.0.1 on npm only reserves the name; the API below is what the next prerelease will ship.
+> **Status: prerelease (1.0.0-alpha.0).** This is phase 1, a read-only viewer: it shows workbooks and doesn't edit or calculate them. Install the prerelease with `npm install react-xlsx-viewer@next`. `latest` stays the 0.0.1 name reservation until 1.0.0. The API can still change between alphas.
+>
+> Known issues in this alpha:
+> - rows don't auto-fit to wrapped, rotated or large text ([#14](https://github.com/securedeveloper/react-xlsx-viewer/issues/14));
+> - shrink-to-fit isn't applied ([#15](https://github.com/securedeveloper/react-xlsx-viewer/issues/15));
+> - numbers can show `####` where Calibri or Carlito isn't installed ([#16](https://github.com/securedeveloper/react-xlsx-viewer/issues/16));
+> - on small sheets the grid ends before the viewport ([#17](https://github.com/securedeveloper/react-xlsx-viewer/issues/17)).
 
 Open `.xlsx` and `.csv` files in React and show them as a spreadsheet: styles, number formats, merged cells, frozen panes, sheet tabs, hyperlinks, and formulas with their stored results. It is built on [javascript-excel](https://github.com/securedeveloper/javascript-excel) and runs entirely in the browser.
+
+```sh
+npm install react-xlsx-viewer@next
+```
 
 ```tsx
 import { XlsxViewer } from 'react-xlsx-viewer';
