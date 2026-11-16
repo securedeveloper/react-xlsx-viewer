@@ -170,6 +170,8 @@ interface CellViewProps {
   outline: string;
   sticky: number | null;
   gridLines: boolean;
+  /** The sheet is right-to-left: general-aligned text starts on the right. */
+  rtl: boolean;
   fonts: Readonly<Record<string, string>> | undefined;
   id: string;
   describedBy: string | undefined;
@@ -193,7 +195,9 @@ const CellView = memo(function CellView(p: CellViewProps): ReactElement {
     Object.assign(style, backgroundCss(cell));
     const f = cell.style.font;
     const a = cell.style.align;
-    const horizontal = a.horizontal === 'general' ? cell.align : a.horizontal === 'centerContinuous' ? 'center' : a.horizontal === 'distributed' || a.horizontal === 'justify' || a.horizontal === 'fill' ? 'left' : a.horizontal;
+    // General alignment follows the value type; with a right-to-left reading order, text starts on the right.
+    const general = cell.align === 'left' && a.direction === 'rtl' ? 'right' : cell.align;
+    const horizontal = a.horizontal === 'general' ? general : a.horizontal === 'centerContinuous' ? 'center' : a.horizontal === 'distributed' || a.horizontal === 'justify' || a.horizontal === 'fill' ? 'left' : a.horizontal;
     style.justifyContent = H_ALIGN[horizontal] ?? 'flex-start';
     style.alignItems = V_ALIGN[a.vertical] ?? 'flex-end';
     const fontSizePx = (f.sizePt * 96) / 72 * z;
@@ -208,12 +212,14 @@ const CellView = memo(function CellView(p: CellViewProps): ReactElement {
       textDecorationStyle: f.underline === 'double' || f.underline === 'doubleAccounting' ? 'double' : 'solid',
       whiteSpace: a.wrap ? 'pre-wrap' : 'pre',
       paddingInlineStart: a.indent ? a.indent * 9 * z : undefined,
-      textAlign: a.horizontal === 'justify' || a.horizontal === 'distributed' ? 'justify' : (horizontal as CSSProperties['textAlign']),
+      textAlign: a.horizontal === 'justify' || a.horizontal === 'distributed' ? 'justify' : a.horizontal === 'general' && horizontal === 'left' && p.rtl ? 'right' : (horizontal as CSSProperties['textAlign']),
     };
-    if (f.vertAlign !== 'baseline') textStyle.verticalAlign = f.vertAlign === 'superscript' ? 'super' : 'sub';
+    // Superscript/subscript for the whole cell: smaller and shifted (vertical-align has no effect on a flex item).
+    if (f.vertAlign !== 'baseline') Object.assign(textStyle, { fontSize: fontSizePx * 0.75, position: 'relative', top: f.vertAlign === 'superscript' ? '-0.35em' : '0.25em' });
     if (a.rotation === 'vertical') Object.assign(textStyle, { writingMode: 'vertical-rl', textOrientation: 'upright' });
     else if (a.rotation) textStyle.transform = `rotate(${-a.rotation}deg)`;
-    if (p.spill > 0) Object.assign(textStyle, { width: p.width + p.spill - 6 * z, overflow: 'hidden' });
+    // A spilling text keeps its full width: as a flex item it would otherwise shrink back to the cell.
+    if (p.spill > 0) Object.assign(textStyle, { width: p.width + p.spill - 6 * z, flexShrink: 0, overflow: 'hidden' });
     let text = cell.text;
     const font = `${f.italic ? 'italic ' : ''}${f.bold ? '700 ' : ''}${fontSizePx}px ${family}`;
     if ((cell.type === 'number' || cell.type === 'date') && !a.wrap && text) {
@@ -224,6 +230,11 @@ const CellView = memo(function CellView(p: CellViewProps): ReactElement {
         const hash = textWidth('#', font) ?? 1;
         text = '#'.repeat(Math.max(1, Math.floor(avail / hash)));
       }
+    }
+    if (a.horizontal === 'fill' && !a.wrap && text && !cell.runs) {
+      // 'fill' alignment repeats the text across the cell (Excel), when the text can be measured.
+      const one = textWidth(text, font);
+      if (one) text = text.repeat(Math.max(1, Math.floor((p.width - 6 * z) / one)));
     }
     if (cell.fill && !a.wrap) {
       const free = p.width - 6 * z - (textWidth(text, font) ?? p.width);
@@ -240,7 +251,8 @@ const CellView = memo(function CellView(p: CellViewProps): ReactElement {
             color: run.font.color,
             fontSize: (run.font.sizePt * 96) / 72 * z,
             fontFamily: fontStack(run.font.family, p.fonts),
-            textDecorationLine: run.font.underline !== 'none' ? 'underline' : run.font.strike ? 'line-through' : 'none',
+            textDecorationLine: [run.font.underline !== 'none' ? 'underline' : '', run.font.strike ? 'line-through' : ''].filter(Boolean).join(' ') || 'none',
+            ...(run.font.vertAlign !== 'baseline' ? { verticalAlign: run.font.vertAlign === 'superscript' ? 'super' : 'sub', fontSize: ((run.font.sizePt * 96) / 72) * z * 0.75 } : {}),
           }}
         >
           {run.text}
@@ -613,7 +625,7 @@ export const Grid: ForwardRefExoticComponent<GridProps & RefAttributes<GridHandl
           while (i + 1 < cols.length && cols[i + 1]! < c + cell.merge.cols) i++;
         }
         let spill = 0;
-        if (cell && !cell.merge && !cell.style.align.wrap && (cell.type === 'string' || cell.type === 'richText') && cell.align === 'left' && (cell.style.align.horizontal === 'general' || cell.style.align.horizontal === 'left')) {
+        if (cell && !cell.merge && !cell.style.align.wrap && (cell.type === 'string' || cell.type === 'richText') && cell.align === 'left' && cell.style.align.direction !== 'rtl' && (cell.style.align.horizontal === 'general' || cell.style.align.horizontal === 'left')) {
           for (let j = i + 1; j < cols.length && cols[j] === cols[j - 1]! + 1; j++) {
             const next = renderCell(rs, r, cols[j]!);
             if (next && (next.text !== '' || next.merge)) break;
@@ -638,6 +650,7 @@ export const Grid: ForwardRefExoticComponent<GridProps & RefAttributes<GridHandl
             outline={multi || isActive ? outlineOf(r, c, span?.rows ?? 1, span?.cols ?? 1) : ''}
             sticky={sticky ? headerW + left * z : null}
             gridLines={props.showGridLines}
+            rtl={rtl}
             fonts={props.fonts}
             id={`${idBase}-${r}-${c}`}
             describedBy={isActive && props.activeDescription ? `${idBase}-desc` : undefined}
