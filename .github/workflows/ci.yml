@@ -13,32 +13,173 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  ci:
-    # Node 24 keeps the required check name `CI`. Node 26 (LTS since
-    # 2026-10) runs as an extra job, `Node 26`, that is not required yet.
-    name: ${{ matrix.node == 24 && 'CI' || format('Node {0}', matrix.node) }}
+  test:
+    name: Node ${{ matrix.node }} / React ${{ matrix.react }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        node: [24, 26]
+        node: [22, 24, 26]
+        # React 18 and 19 (react-xlsx-viewer's peer range is >=18 <20, docs/api.md §12 Q3).
+        react: [18, 19]
+    env:
+      # Asserted by the test suite, so a job can't silently run on the wrong React.
+      REACT_MAJOR: ${{ matrix.react }}
+      SMOKE_REACT: ${{ matrix.react }}
     steps:
       - uses: actions/checkout@v7
+
       - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
           cache: npm
-      - run: npm ci
+
+      # React 19 is the committed default: install exactly from the lockfile.
+      - name: Install (lockfile)
+        if: matrix.react == 19
+        run: npm ci
+
+      # React 18: rewrite the dev ranges and resolve a fresh tree (see the script).
+      - name: Install (React ${{ matrix.react }})
+        if: matrix.react != 19
+        run: node scripts/use-react.mjs ${{ matrix.react }}
+
+      - name: Resolved versions
+        run: node scripts/print-versions.mjs
+
+      - name: Typecheck (library + playground)
+        if: matrix.react == 19
+        run: npm run typecheck
+
+      - name: Typecheck (library)
+        if: matrix.react != 19
+        run: npm run typecheck -w react-xlsx-viewer
+
+      - name: Test
+        run: npm test
+
       - name: Release script unit tests
         run: npm run test:release
+
+      - name: Build library
+        run: npm run build -w react-xlsx-viewer
+
+      - name: Lint package (publint + are-the-types-wrong)
+        if: matrix.react == 19
+        run: npm run lint:pkg
+
+      - name: Smoke test packed tarball (ESM, CJS, types, "use client")
+        run: npm run smoke
+
+      - name: Build playground
+        if: matrix.react == 19
+        run: npm run build -w playground
+
       - name: npm pack --dry-run
-        run: npm pack --dry-run
+        if: matrix.react == 19 && matrix.node == 24
+        run: npm pack --dry-run -w react-xlsx-viewer
+
+  # The required check. One stable name for the whole matrix above.
+  ci:
+    name: CI
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every Node / React cell passed
+        run: test "${{ needs.test.result }}" = success
+
+  # The package in a real browser (test/browser, Vitest browser mode + Playwright
+  # Chromium): layout, focus and scrolling, which jsdom does not have. Not a
+  # required check yet.
+  browser:
+    name: Browser
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Playwright version
+        id: pw
+        run: echo "version=$(npm -w react-xlsx-viewer exec -- playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}-chromium-headless-shell
+      - name: Install Chromium (headless shell) and its system libraries
+        run: npm -w react-xlsx-viewer exec -- playwright install --with-deps --only-shell chromium
+      - name: Browser tests
+        run: npm run test:browser
+
+  # Consumer TypeScript matrix: one tarball, type-checked by a consumer project
+  # on several TypeScript versions, @types/react majors and moduleResolution modes.
+  pack:
+    name: Pack
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build -w react-xlsx-viewer
+      - name: npm pack
+        run: |
+          mkdir -p pack
+          npm pack -w react-xlsx-viewer --pack-destination pack
+          mv pack/*.tgz pack/react-xlsx-viewer.tgz
+      - uses: actions/upload-artifact@v7
+        with:
+          name: tarball
+          path: pack/react-xlsx-viewer.tgz
+          retention-days: 3
+
+  consumer-ts:
+    name: Consumer TS ${{ matrix.ts }} / @types/react ${{ matrix.react }}
+    needs: pack
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Every minor from the supported floor (5.0) up, same set as the other family packages.
+        ts: ['5.0', '5.1', '5.2', '5.3', '5.4', '5.5', '5.6', '5.7', '5.8', '5.9', '6.0', '7.0']
+        react: [18, 19]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v8
+        with:
+          name: tarball
+          path: pack
+      - name: Type-check consumer fixture
+        run: >-
+          node scripts/consumer-ts.mjs
+          --tarball pack/react-xlsx-viewer.tgz
+          --ts ${{ matrix.ts }}
+          --react ${{ matrix.react }}
+          --resolution node16,nodenext,bundler
+
+  # Single stable name for the consumer matrix.
+  consumer-ts-result:
+    name: Consumer TS
+    needs: consumer-ts
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: All consumer TypeScript cells passed
+        run: test "${{ needs.consumer-ts.result }}" = success
 
   release-dry-run:
     name: Release dry run
     runs-on: ubuntu-latest
     env:
-      PACKAGE_DIR: .
+      PACKAGE_DIR: packages/react-xlsx-viewer
     steps:
       # On a pull_request, HEAD is the test merge commit and HEAD~1 is the
       # base branch tip, so the release check below previews what merging

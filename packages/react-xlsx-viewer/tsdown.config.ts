@@ -1,0 +1,31 @@
+import { defineConfig, type UserConfig } from 'tsdown';
+
+// `isolatedDeclarations` (tsconfig) makes tsdown emit .d.ts with Oxc, so the
+// declaration build does not depend on the TypeScript compiler API (TS 7 has
+// none). It also means every export needs an explicit type, including this one.
+const config: UserConfig = defineConfig({
+  entry: ['src/index.ts'],
+  format: ['esm', 'cjs'],
+  platform: 'neutral',
+  target: 'es2020',
+  dts: true,
+  sourcemap: false,
+  clean: true,
+  // src/index.ts starts with "use client" (docs/api.md §5.3). With one entry and
+  // no shared chunks rolldown keeps it as the first statement of both builds,
+  // but still warns MODULE_LEVEL_DIRECTIVE. Drop only that warning for that
+  // directive; scripts/smoke.mjs fails if a built file stops starting with it.
+  inputOptions(options) {
+    const next = options.onLog;
+    return {
+      ...options,
+      onLog(level, log, handler) {
+        if (log.code === 'MODULE_LEVEL_DIRECTIVE' && log.message.includes('"use client"')) return;
+        if (next) next(level, log, handler);
+        else handler(level, log);
+      },
+    };
+  },
+});
+
+export default config;
