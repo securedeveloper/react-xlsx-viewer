@@ -6,6 +6,8 @@ import { createElement, Profiler } from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { toUint8Array } from 'javascript-excel';
+import { read } from 'javascript-excel/read';
+import { createWorkerClient } from 'javascript-excel/worker';
 import { createRenderSheet, rangeAsHtml, rangeAsTsv, rangeStats } from 'javascript-excel/render';
 import { commands } from 'vitest/browser';
 import { expect, it } from 'vitest';
@@ -144,6 +146,90 @@ it('measures the viewer', async () => {
   results['openXlsx'] = { cells: 500_000, fileBytes: bytes.length, toGridMs: Math.round(performance.now() - t3), longestFrameMs: longFrames.length ? Math.round(Math.max(...longFrames)) : null };
   root2.unmount();
   host2.remove();
+
+  // 8. Reading through a worker: the main thread only deserialises the result. Frame gaps and long
+  // animation frames while the worker reads are the receive cost (docs/api.md §6.1).
+  const newWorker = (): Worker => new Worker(new URL('./excel.worker.ts', import.meta.url), { type: 'module' });
+  {
+    const client = createWorkerClient(newWorker());
+    await client.read(await toUint8Array(bigWorkbook(100, 5)), { dates: 'serial' }); // warm up the worker
+    longFrames.length = 0;
+    const gaps: number[] = [];
+    let busy = true;
+    const watch = (async () => {
+      let last = await frame();
+      while (busy) {
+        const now = await frame();
+        gaps.push(now - last);
+        last = now;
+      }
+    })();
+    const t = performance.now();
+    const { workbook: viaWorker } = await client.read(bytes, { dates: 'serial' });
+    const workerMs = performance.now() - t;
+    busy = false;
+    await watch;
+    client.terminate();
+    expect(viaWorker.sheets[0]!.rows.length).toBe(50_000);
+    results['workerRead'] = {
+      cells: 500_000,
+      totalMs: Math.round(workerMs),
+      mainThreadFrames: stat(gaps),
+      longestFrameMs: Math.round(Math.max(...gaps)),
+      longAnimationFrames: lofSupported ? longFrames.map((d) => Math.round(d)) : 'unsupported',
+    };
+  }
+  {
+    // The same file through <XlsxViewer worker>.
+    const host3 = document.createElement('div');
+    host3.style.cssText = 'width: 1200px; height: 700px;';
+    document.body.append(host3);
+    const root3 = createRoot(host3);
+    longFrames.length = 0;
+    const t = performance.now();
+    flushSync(() => root3.render(createElement(XlsxViewer, { source: bytes, worker: newWorker, style: { height: '100%' } })));
+    while (!host3.querySelector('[role="grid"]')) await frame();
+    results['openXlsxWorker'] = { cells: 500_000, toGridMs: Math.round(performance.now() - t), longestFrameMs: longFrames.length ? Math.round(Math.max(...longFrames)) : null };
+    root3.unmount();
+    host3.remove();
+  }
+
+  // 9. Memory per file: the page's V8 heap after a full GC, through the harness's `heapUsed` command (CDP).
+  {
+    const heapUsed = (commands as unknown as { heapUsed: () => Promise<number> }).heapUsed;
+    const heap = async (): Promise<number> => {
+      await frame();
+      return heapUsed();
+    };
+    const MB = (n: number): number => Math.round((n / 2 ** 20) * 10) / 10;
+    const base = await heap();
+    let { workbook } = await read(bytes, { dates: 'serial' });
+    const afterRead = await heap();
+    let rsHandle: ReturnType<typeof createRenderSheet> | null = createRenderSheet(workbook, 0);
+    const afterRender = await heap();
+    const host4 = document.createElement('div');
+    host4.style.cssText = 'width: 1200px; height: 700px;';
+    document.body.append(host4);
+    const root4 = createRoot(host4);
+    flushSync(() => root4.render(createElement(XlsxViewer, { source: workbook, style: { height: '100%' } })));
+    while (!host4.querySelector('[role="gridcell"]')) await frame();
+    const afterMount = await heap();
+    root4.unmount();
+    host4.remove();
+    rsHandle = null;
+    workbook = { sheets: [] };
+    const afterRelease = await heap();
+    results['memory'] = {
+      cells: 500_000,
+      fileBytes: bytes.length,
+      modelMB: MB(afterRead - base),
+      modelBytesPerCell: Math.round((afterRead - base) / 500_000),
+      renderModelMB: MB(afterRender - afterRead),
+      viewerMountedMB: MB(afterMount - afterRender),
+      retainedAfterReleaseMB: MB(afterRelease - base),
+    };
+    expect(rsHandle).toBeNull();
+  }
 
   const mem = (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory;
   if (mem) results['heapMB'] = Math.round(mem.usedJSHeapSize / 2 ** 20);

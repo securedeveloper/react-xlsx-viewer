@@ -258,7 +258,7 @@ Run for each release (XLV-9 records the results). The automated parts run in CI.
   - link chip;
   - errors and notices.
 
-  JAWS is checked when a licence is available `[placeholder: tester]`.
+  JAWS + Chrome is a manual check for Afzal before 1.0, with the same list. It needs a JAWS licence, so it isn't part of CI.
 - **Zoom and reflow:**
   - the page works at 200 % browser zoom;
   - the chrome reflows at 320 CSS px width (WCAG 1.4.10); the grid itself scrolls in two dimensions, which the criterion allows for data tables;
