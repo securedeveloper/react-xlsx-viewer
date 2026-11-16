@@ -24,6 +24,9 @@ import {
   rangeAsTsv,
   rangeStats,
   renderCell,
+  rowHeight,
+  setRowHeights,
+  sheetExtent,
   sheetSettings,
   type CellRef,
   type RenderHyperlink,
@@ -213,10 +216,33 @@ export const XlsxViewer: ForwardRefExoticComponent<XlsxViewerProps & RefAttribut
     const sheetIndex = wb && sheets.includes(sheet) ? sheet : (sheets[0] ?? 0);
 
     const schemesKey = (props.hyperlinkSchemes ?? []).join(',');
+    // Empty rows and columns after the used range: at least 50 rows and 30 columns (about 1,000 x 2,000 px at 100 %,
+    // so most viewers never rebuild), and enough default-size rows and columns to fill the viewport at the current
+    // zoom, so small sheets don't end inside the viewer (#17). It only grows, in steps of 10, so resizing doesn't
+    // rebuild the sheet on every frame.
+    const [viewSize, setViewSize] = useState({ width: 0, height: 0 });
+    const [margin, setMargin] = useState({ rows: 50, cols: 30 });
+    const built = useRef<{ rs: RenderSheet; wb: Workbook<CellInput> } | null>(null);
     const rs: RenderSheet | null = useMemo(
-      () => (wb && wb.sheets[sheetIndex] ? createRenderSheet(wb, sheetIndex, { format: formatCell, locale, hyperlinkSchemes: props.hyperlinkSchemes }) : null),
+      () => {
+        if (!wb || !wb.sheets[sheetIndex]) return null;
+        const next = createRenderSheet(wb, sheetIndex, { format: formatCell, locale, hyperlinkSchemes: props.hyperlinkSchemes, margin });
+        // A rebuild of the same sheet (a larger margin, another locale) keeps the rows auto-fit so far, so the view doesn't move.
+        const prev = built.current;
+        if (prev && prev.wb === wb && prev.rs.sheet === sheetIndex) {
+          const rows = Math.min(sheetExtent(prev.rs).rows, sheetExtent(next).rows);
+          const heights: Array<[number, number]> = [];
+          for (let r = 0; r < rows; r++) {
+            const h = rowHeight(prev.rs, r);
+            if (h !== rowHeight(next, r)) heights.push([r, h]);
+          }
+          if (heights.length) setRowHeights(next, heights);
+        }
+        built.current = { rs: next, wb };
+        return next;
+      },
       // eslint-disable-next-line react-hooks/exhaustive-deps
-      [wb, sheetIndex, locale, schemesKey],
+      [wb, sheetIndex, locale, schemesKey, margin],
     );
     const settings = useMemo(() => (rs ? sheetSettings(rs) : null), [rs]);
 
@@ -231,15 +257,31 @@ export const XlsxViewer: ForwardRefExoticComponent<XlsxViewerProps & RefAttribut
     const [zoom, setZoomRaw] = useControllable(props.zoom, () => props.defaultZoom ?? settings?.zoom ?? 100, props.onZoomChange);
     const clampZoom = (n: number): number => Math.min(400, Math.max(10, Math.round(n)));
     const setZoom = useCallback((n: number) => setZoomRaw(clampZoom(n)), [setZoomRaw]);
+    useEffect(() => {
+      if (!wb || !wb.sheets[sheetIndex] || viewSize.height === 0) return;
+      const sh = wb.sheets[sheetIndex]!;
+      const z = zoom / 100;
+      const rowPx = ((sh.defaultRowHeight ?? 15) * 96) / 72;
+      const colPx = Math.max(8, (sh.defaultColWidth ?? 8.43) * 7 + 5);
+      const step = (n: number): number => Math.ceil(n / 10) * 10;
+      const rows = step(viewSize.height / (rowPx * z) + 1);
+      const cols = step(viewSize.width / (colPx * z) + 1);
+      setMargin((m) => (rows > m.rows || cols > m.cols ? { rows: Math.max(m.rows, rows), cols: Math.max(m.cols, cols) } : m));
+    }, [wb, sheetIndex, viewSize, zoom]);
     const setSelection = useCallback((s: Selection) => (equalSelection(s, selection) ? undefined : setSelectionRaw(s)), [selection, setSelectionRaw]);
 
     // Remember each sheet's view; restore it when the sheet comes back.
     const scrollPos = useRef({ top: 0, left: 0 });
     const lastRs = useRef<RenderSheet | null>(null);
+    const lastRsWb = useRef<Workbook<CellInput> | null>(null);
     useEffect(() => {
       if (!rs || lastRs.current === rs) return;
       const prev = lastRs.current;
+      const sameSheet = prev !== null && prev.sheet === rs.sheet && lastRsWb.current === wb;
       lastRs.current = rs;
+      lastRsWb.current = wb;
+      // The same sheet rebuilt (margin, locale): keep the selection, zoom and scroll as they are.
+      if (sameSheet) return;
       if (prev && prev.name !== undefined) memory.current.set(prev.sheet, { selection, scroll: scrollPos.current, zoom });
       const saved = memory.current.get(rs.sheet);
       if (props.selection === undefined) setSelectionRaw(saved?.selection ?? initialSelection());
@@ -469,7 +511,9 @@ export const XlsxViewer: ForwardRefExoticComponent<XlsxViewerProps & RefAttribut
               setHint(labels.findHint);
             }
           }}
-          initialScroll={memory.current.get(rs.sheet)?.scroll}
+          // A rebuild of the same sheet keeps the scroll position the grid already has.
+          initialScroll={lastRs.current && lastRs.current !== rs && lastRs.current.sheet === rs.sheet && lastRsWb.current === wb ? undefined : memory.current.get(rs.sheet)?.scroll}
+          onViewportChange={setViewSize}
           onScrollChange={(p) => {
             scrollPos.current = p;
           }}

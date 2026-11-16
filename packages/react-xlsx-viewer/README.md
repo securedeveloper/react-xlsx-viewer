@@ -5,7 +5,6 @@
 > Known issues in this alpha:
 > - shrink-to-fit isn't applied ([#15](https://github.com/securedeveloper/react-xlsx-viewer/issues/15));
 > - numbers can show `####` where Calibri or Carlito isn't installed ([#16](https://github.com/securedeveloper/react-xlsx-viewer/issues/16));
-> - on small sheets the grid ends before the viewport ([#17](https://github.com/securedeveloper/react-xlsx-viewer/issues/17));
 > - autofilter buttons aren't shown ([#19](https://github.com/securedeveloper/react-xlsx-viewer/issues/19)).
 
 Open `.xlsx` and `.csv` files in React and show them as a spreadsheet: styles, number formats, merged cells, frozen panes, sheet tabs, hyperlinks, and formulas with their stored results. It is built on [javascript-excel](https://github.com/securedeveloper/javascript-excel) and runs entirely in the browser.
