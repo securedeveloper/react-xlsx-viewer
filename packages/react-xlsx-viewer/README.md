@@ -1,6 +1,6 @@
 # react-xlsx-viewer
 
-> **Status: prerelease (1.0.0-alpha.0).** This is phase 1, a read-only viewer: it shows workbooks and doesn't edit or calculate them. Install the prerelease with `npm install react-xlsx-viewer@next`. `latest` stays the 0.0.1 name reservation until 1.0.0. The API can still change between alphas.
+> **Status: prerelease (1.0.0-alpha.1).** This is phase 1, a read-only viewer: it shows workbooks and doesn't edit or calculate them. Install the prerelease with `npm install react-xlsx-viewer@next`. `latest` stays the 0.0.1 name reservation until 1.0.0. The API can still change between alphas.
 >
 > Known issues in this alpha:
 > - numbers can show `####` where Calibri or Carlito isn't installed ([#16](https://github.com/securedeveloper/react-xlsx-viewer/issues/16));

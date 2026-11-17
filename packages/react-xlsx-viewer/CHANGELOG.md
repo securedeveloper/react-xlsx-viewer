@@ -1,5 +1,16 @@
 # react-xlsx-viewer
 
+## 1.0.0-alpha.1
+
+### Minor Changes
+
+- f09a9b6: Rows without a stored height now auto-fit to their content as they come into view (#14): wrapped text, larger fonts, rotated and stacked text. Rows only grow, merged cells are skipped as in Excel, and the row at the top of the view stays in place while rows above it grow. Rotated text turns about the cell's centre and is no longer clipped to the column first. Needs javascript-excel 2.0.0-alpha.5 (`setRowHeights`).
+
+### Patch Changes
+
+- cbd7592: Small sheets fill the viewer (#17). The empty rows and columns after the used range now number at least 50 rows and 30 columns, and enough to fill the viewport at the current zoom. They grow when the viewer grows or zooms out, keeping the selection, scroll position and auto-fitted rows.
+- 8fa2e95: Shrink to fit is applied (#15): text in a cell with `shrinkToFit` is drawn smaller so it fits the column width, numbers shrink instead of showing `####`, and the text no longer spills into neighbours. Where text can't be measured (no `OffscreenCanvas`), it still clips.
+
 ## 1.0.0-alpha.0
 
 ### Major Changes
