@@ -128,7 +128,7 @@ Run all fifteen steps with each combination below. Notes list what is specific t
 | 2. Move between cells | Each move announced; blank cells blank | Names change with each arrow; colindex and rowindex follow; a blank cell has an empty name | Pass |
 | 3. Merged cells | Text and span; next arrow skips covered cells | "A1:C1 merged, centred", `aria-colspan` 3; Right goes to colindex 5 (D1); "A2:A4 merged vertically", `aria-rowspan` 3 | Pass |
 | 4. Hidden rows and columns | The number jumps; header text for the gap | rowindex 5 → 7; header "6" described "Row 5 hidden", header "J" described "Columns H–I hidden" (`title`) | Pass |
-| 5. Frozen panes | Each move announced; focus stays | Page Down: "48", rowindex 26; Ctrl+Home: "1" at B2, after the frozen row and column | Pass |
+| 5. Frozen panes | Each move announced; focus stays | Page Down: one screen down (rowindex 6 → 26 at 560 px), the new cell named; Ctrl+Home: "1" at B2, after the frozen row and column | Pass |
 | 6. Selection summary | Cells selected; summary once, after a pause | Focused cell selected, 4 cells `aria-selected`; status empty while moving, then "4 cells · Sum 45 · Average 11.25" after 600 ms | Pass |
 | 7. Formula description | Result, then "Formula: =…"; "not calculated" without a result | Name "20", description "Formula: =D2*2"; a formula without a result: empty name, description "Formula: =…. not calculated" | Pass |
 | 8. Sheet switching | New grid name and active cell | Focus on a gridcell in grid "Sheet: Text"; status "Sheet: Text" | Pass |
