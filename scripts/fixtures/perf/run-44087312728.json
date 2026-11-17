@@ -1,0 +1,183 @@
+{
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/159.0.8154.6 Safari/537.36",
+  "viewport": "1280x800",
+  "firstCells": {
+    "cells": 2000000,
+    "buildWorkbookMs": 94,
+    "mountToFirstPaintMs": 280
+  },
+  "scroll": {
+    "vertical": {
+      "frames": {
+        "p50": 16.7,
+        "p95": 33.4,
+        "max": 49.9,
+        "n": 300
+      },
+      "droppedFrames": 72,
+      "commitMs": {
+        "p50": 12.3,
+        "p95": 18.9,
+        "max": 33.1,
+        "n": 299
+      },
+      "maxCells": 861
+    },
+    "horizontal": {
+      "frames": {
+        "p50": 16.7,
+        "p95": 33.3,
+        "max": 100,
+        "n": 100
+      },
+      "droppedFrames": 8,
+      "commitMs": {
+        "p50": 7.4,
+        "p95": 27,
+        "max": 78,
+        "n": 26
+      },
+      "maxCells": 907
+    },
+    "diagonal": {
+      "frames": {
+        "p50": 16.7,
+        "p95": 16.7,
+        "max": 16.8,
+        "n": 200
+      },
+      "droppedFrames": 0,
+      "commitMs": {
+        "p50": 7.2,
+        "p95": 11.7,
+        "max": 16.6,
+        "n": 199
+      },
+      "maxCells": 861
+    },
+    "longAnimationFrames": {
+      "count": 0,
+      "maxMs": 0
+    }
+  },
+  "keyboard": {
+    "arrow": {
+      "p50": 16.6,
+      "p95": 18.5,
+      "max": 23.4,
+      "n": 100
+    },
+    "pageDown": {
+      "p50": 48.8,
+      "p95": 79.7,
+      "max": 93.6,
+      "n": 30
+    },
+    "ctrlJumps": {
+      "p50": 39.2,
+      "p95": 51.1,
+      "max": 51.1,
+      "n": 4
+    },
+    "shiftExtend": {
+      "p50": 16.8,
+      "p95": 27,
+      "max": 27.1,
+      "n": 30
+    }
+  },
+  "click": {
+    "p50": 16.6,
+    "p95": 16.7,
+    "max": 16.7,
+    "n": 30
+  },
+  "autoFit": {
+    "rows": 20000,
+    "frames": {
+      "p50": 16.7,
+      "p95": 16.8,
+      "max": 33.4,
+      "n": 300
+    },
+    "droppedFrames": 7,
+    "commitMs": {
+      "p50": 1.6,
+      "p95": 10.6,
+      "max": 17.6,
+      "n": 588
+    },
+    "longAnimationFrames": 0,
+    "grownRowPx": {
+      "p50": 106,
+      "p95": 106,
+      "max": 106,
+      "n": 19
+    }
+  },
+  "copy": [
+    {
+      "cells": 10000,
+      "ms": 39
+    },
+    {
+      "cells": 50000,
+      "ms": 152
+    },
+    {
+      "cells": 100000,
+      "ms": 304
+    },
+    {
+      "cells": 500000,
+      "ms": 1664
+    }
+  ],
+  "stats": [
+    {
+      "cells": 100000,
+      "ms": 5
+    },
+    {
+      "cells": 1000000,
+      "ms": 23
+    },
+    {
+      "cells": 2000000,
+      "ms": 53
+    }
+  ],
+  "openXlsx": {
+    "cells": 500000,
+    "fileBytes": 2659722,
+    "toGridMs": 800,
+    "longestFrameMs": null
+  },
+  "workerRead": {
+    "cells": 500000,
+    "totalMs": 1049,
+    "mainThreadFrames": {
+      "p50": 16.7,
+      "p95": 16.8,
+      "max": 16.8,
+      "n": 52
+    },
+    "longestFrameMs": 17,
+    "longAnimationFrames": []
+  },
+  "openXlsxWorker": {
+    "cells": 500000,
+    "toGridMs": 1303,
+    "longestFrameMs": null
+  },
+  "memory": {
+    "cells": 500000,
+    "fileBytes": 2659722,
+    "modelMB": 25.8,
+    "modelBytesPerCell": 54,
+    "renderModelMB": 0,
+    "viewerMountedMB": 3.9,
+    "retainedAfterReleaseMB": 0
+  },
+  "heapMB": 257
+}

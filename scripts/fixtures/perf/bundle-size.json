@@ -1,0 +1,14 @@
+{
+  "initial": {
+    "minified": 109617,
+    "gzip": 33948
+  },
+  "all": {
+    "minified": 198971,
+    "gzip": 60951
+  },
+  "css": {
+    "minified": 9741,
+    "gzip": 2768
+  }
+}
