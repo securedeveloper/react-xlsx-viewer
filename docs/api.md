@@ -594,13 +594,13 @@ default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; c
 - **No inline styles in HTML.** The package CSS is a file the app imports (no runtime `<style>` injection). Cell styles go through the CSSOM.
 - **No SSR of the grid.** The viewer renders an empty shell on the server and the grid only on the client, so no `style="…"` attributes appear in server HTML that `style-src 'self'` would block.
 - **Workers.** A worker needs `worker-src 'self'` with the app-owned worker file.
-- **CI check.** The playground ships this CSP in `vercel.json`, served by `vite preview` too, and CI checks the console for CSP violations.
+- **CI check.** The in-repo dev sandbox (`apps/playground`) serves this CSP from `vite preview` (`vite.config.ts`), and CI checks the console for CSP violations. The public playground is `securedeveloper/react-xlsx-viewer-playground`.
 
 ## 11. Packaging, runtime support, testing
 
 ### 11.1 Package
 
-Layout follows the family: npm workspaces, `packages/react-xlsx-viewer`, `apps/playground` (Vercel).
+Layout follows the family: npm workspaces, `packages/react-xlsx-viewer`, `apps/playground` (CI-tested dev sandbox, not deployed).
 
 | Item | Value |
 |---|---|
