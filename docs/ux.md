@@ -192,7 +192,7 @@ When the reader reports content the viewer doesn't show (`UNSUPPORTED_PART`: cha
 - **Formulas.**
   - The active formula cell gets `aria-describedby` pointing to a visually hidden "Formula: =SUM(B1:B3)" node, so the formula is announced after the value without leaving the grid.
   - A formula without a cached value is described as "Not calculated".
-- **Hyperlinks.** Link cells are described as "Link to {host}" (or "Link to Summary, B4").
+- **Hyperlinks.** Link cells are described as "Link to {host}", or for an internal link "Link to {sheet}, {cell}" (for example "Link to Summary, B4"). A link that won't open is described as "Link not opened: unsupported address".
 - **Selection.** `aria-selected` is set on the selected cells within the rendered window. The status bar's summary, announced after 600 ms of keyboard idle, covers ranges larger than what is rendered.
 - **Hidden rows and columns.** The `aria-rowindex` gaps tell the screen reader. The hidden-row markers in the headers have text alternatives.
 - **Sheet switching.** Switching sheets announces "Sheet: {name}, {active cell}".

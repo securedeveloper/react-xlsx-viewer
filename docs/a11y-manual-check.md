@@ -20,7 +20,7 @@ Wording differs between screen readers. A step passes when the listed **informat
 
 ## Steps (all screen readers)
 
-1. **Enter the grid.** Load *Merges and views*. Press Tab from the page until focus lands in the grid.
+1. **Enter the grid.** Load *Merges and views*. Press Tab from the page until focus lands in the grid (the formula bar's address and value fields come first).
    - Expected: the grid's name "Sheet: {sheet name}", that it is a grid or table (read-only), and the active cell: its text and position (column letter and row number, or "row n, column n").
    - Pass: all three are spoken; focus is visibly outlined.
 2. **Move between cells.** Press the arrow keys in all four directions.
@@ -115,3 +115,31 @@ Run all fifteen steps with each combination below. Notes list what is specific t
 3. Before 1.0, every step passes with JAWS + Chrome.
 4. A fail that is a screen-reader bug rather than ours (the same markup works in the other readers, and matches the WAI-ARIA grid pattern) is recorded with a link to the reader's issue, and doesn't block the release on its own.
 5. Every other fail gets an issue in this repository before the release goes ahead.
+
+## Automated pre-pass (Chromium accessibility tree), 2026-11-17
+
+`packages/react-xlsx-viewer/test/browser/a11y-tree.browser.test.tsx` runs every step above in Chromium, in the Browser job, with real keyboard input. It reads what Chromium hands to screen readers from its accessibility tree over the DevTools protocol: the focused node's role, name, description and states, its ancestors, and the live regions. It then pins the result. Chromium's protocol doesn't list `aria-rowindex`, `aria-colindex`, `aria-rowcount`, `aria-colcount`, `aria-rowspan` or `aria-colspan`, which reach the platform as table attributes, so the test checks those on the DOM.
+
+**This doesn't replace the manual passes.** It shows that the browser exposes the right information. It can't show what NVDA, JAWS, VoiceOver or TalkBack do with it: their wording, their verbosity, or whether focus or forms mode switches as expected. All the manual passes above stay open.
+
+| Step | Expected (above) | Exposed in Chromium | Result |
+|---|---|---|---|
+| 1. Enter the grid | Grid name, grid, read-only, the cell's text and position | gridcell "8", focused, selected, read-only; grid "Sheet: Frozen both (active)", read-only, multiselectable; row name starts with its header "5"; rowindex 6, colindex 4 of 91 × 41. Tab passes the formula bar's two fields first | **Mismatch, fixed:** cells were exposed as *not* read-only (Chromium doesn't pass the grid's `aria-readonly` down). Each cell now says `aria-readonly="true"` |
+| 2. Move between cells | Each move announced; blank cells blank | Names change with each arrow; colindex and rowindex follow; a blank cell has an empty name | Pass |
+| 3. Merged cells | Text and span; next arrow skips covered cells | "A1:C1 merged, centred", `aria-colspan` 3; Right goes to colindex 5 (D1); "A2:A4 merged vertically", `aria-rowspan` 3 | Pass |
+| 4. Hidden rows and columns | The number jumps; header text for the gap | rowindex 5 → 7; header "6" described "Row 5 hidden", header "J" described "Columns H–I hidden" (`title`) | Pass |
+| 5. Frozen panes | Each move announced; focus stays | Page Down: one screen down (rowindex 6 → 26 at 560 px), the new cell named; Ctrl+Home: "1" at B2, after the frozen row and column | Pass |
+| 6. Selection summary | Cells selected; summary once, after a pause | Focused cell selected, 4 cells `aria-selected`; status empty while moving, then "4 cells · Sum 45 · Average 11.25" after 600 ms | Pass |
+| 7. Formula description | Result, then "Formula: =…"; "not calculated" without a result | Name "20", description "Formula: =D2*2"; a formula without a result: empty name, description "Formula: =…. not calculated" | Pass |
+| 8. Sheet switching | New grid name and active cell | Focus on a gridcell in grid "Sheet: Text"; status "Sheet: Text" | Pass |
+| 9. Sheet tabs | Tab list, names, selected, "(hidden)" | tablist "Sheets" (horizontal); tab "Frozen both (active)" selected; "Hidden (hidden)" not selected until Enter. Position in the set is computed by the platform, not listed by the protocol | Pass |
+| 10. Link chip | "Link to {host}"; "Open" link; Escape back; internal "Link to {sheet}, {cell}"; blocked text | External: description "Link to example.com", Tab to link "Open" with the URL, Escape back to the cell | Pass |
+| | | Internal: description was "Link to A1" and the chip "Go to A1" | **Mismatch, fixed:** now "Link to Second sheet, A1" and "Go to Second sheet, A1" |
+| | | Blocked (`javascript:`): description was "Link to javascript:alert(1)" | **Mismatch, fixed:** now "Link not opened: unsupported address", as in the chip |
+| 11. Shortcuts dialog | Dialog named, focus on Close; Escape back | Modal dialog "Keyboard shortcuts", focus on button "Close"; Escape returns to the cell | Pass |
+| 12. Zoom controls | Every control named; list says its value | Buttons "Zoom out", "Zoom in", "Keyboard shortcuts"; combobox "Zoom", value "100 %" | Pass |
+| 13. Loading and errors | Alert spoken without moving focus | Alert "This doesn't look like a workbook or a CSV file. …"; focus stays where it was | Pass |
+| 14. Not-shown notice | A findable region with Dismiss | region "Some content isn't shown" containing button "Dismiss" | Pass |
+| 15. Leave the grid | Tab leaves; Shift+Tab returns to the same cell | Tab moves to the next control; Shift+Tab returns focus to the same gridcell | Pass |
+
+The sample `13-columns-rows.xlsx` labels row 4 as "Row 4 is hidden", but the file hides row 5. That is a wording issue in javascript-excel's corpus, not in the viewer.

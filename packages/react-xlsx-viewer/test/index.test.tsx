@@ -136,7 +136,10 @@ describe('<XlsxViewer> grid', () => {
     expect(screen.getByText('example.com').tagName).toBe('STRONG');
     expect(screen.getByRole('link', { name: 'Open' }).getAttribute('rel')).toBe('noopener noreferrer');
     rerender(<XlsxViewer source={book()} selection={{ ranges: [{ start: { row: 3, col: 0 }, end: { row: 3, col: 0 } }], active: { row: 3, col: 0 } }} />);
-    expect(screen.getByText(DEFAULT_LABELS.linkBlocked)).toBeTruthy();
+    expect(document.querySelector('.xv-link-chip')!.textContent).toBe(DEFAULT_LABELS.linkBlocked);
+    // The cell's description says the same, so screen readers don't hear it as a link they can open.
+    expect(cell(3, 0).getAttribute('aria-describedby')).toBeTruthy();
+    expect(document.getElementById(cell(3, 0).getAttribute('aria-describedby')!)!.textContent).toBe(DEFAULT_LABELS.linkBlocked);
     expect(screen.queryByRole('link', { name: 'Open' })).toBeNull();
   });
 

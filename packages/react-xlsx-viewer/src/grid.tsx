@@ -339,6 +339,8 @@ const CellView = memo(function CellView(p: CellViewProps): ReactElement {
       aria-colspan={cell?.merge && cell.merge.cols > 1 ? cell.merge.cols : undefined}
       aria-rowspan={cell?.merge && cell.merge.rows > 1 ? cell.merge.rows : undefined}
       aria-selected={p.selected}
+      // Chromium doesn't pass the grid's aria-readonly down to its cells (it reports them as editable), so each cell says it too.
+      aria-readonly="true"
       aria-describedby={p.describedBy}
       tabIndex={p.active ? 0 : -1}
       data-r={p.row}
