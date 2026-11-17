@@ -31,7 +31,7 @@ The generated cases:
 
 ## Visual regression
 
-`packages/react-xlsx-viewer/test/visual/corpus.visual.test.tsx` screenshots every visible sheet of every corpus file (the kitchen-sink file aside, which repeats the others) and compares each with the reviewed baseline in `test/visual/__screenshots__/`. A mismatch fails the Browser job, and the job uploads a `visual-diffs` artifact with the actual screenshots and the diffs.
+`packages/react-xlsx-viewer/test/visual/corpus.visual.test.tsx` screenshots every visible sheet of every corpus file (the kitchen-sink file aside, which repeats the others) and compares each with the reviewed baseline in `test/visual/__screenshots__/`. A mismatch fails the Browser job, and the job uploads a `visual-diffs` artifact with the new screenshots and the diffs.
 
 **Determinism.**
 - **Image:** the Browser job runs in `mcr.microsoft.com/playwright:v1.65.1-noble` (Ubuntu 24.04), so the OS, its libraries and its fonts are the same on every run. It installs Carlito and Caladea on top (Calibri and Cambria in the font map); the image has Liberation (Arial, Times New Roman, Courier New).
@@ -46,7 +46,14 @@ npm run visual:docker -- --update   # sh scripts/visual.sh --update: Docker, sam
 npm run visual:docker               # compare only
 ```
 
-Or take them from CI: download the `visual-diffs` artifact of a failed Browser run and copy its `test/visual/__screenshots__` over the committed one. Either way, look at every changed image before committing it; the diff in the pull request is the review.
+Or take them from CI: after a mismatch the Browser job renders the new baselines in the same container and uploads them in the `visual-diffs` artifact, next to Vitest's diff images (`.vitest/attachments`). Copy the artifact's `test/visual/__screenshots__` over the committed one:
+
+```sh
+gh run download <run-id> -n visual-diffs -D /tmp/visual-diffs
+cp -R /tmp/visual-diffs/test/visual/__screenshots__ packages/react-xlsx-viewer/test/visual/
+```
+
+ Either way, look at every changed image before committing it; the diff in the pull request is the review.
 
 `npm run test:visual` on a laptop works, but compares against Linux screenshots and will fail on font rendering; use it to debug, not to judge.
 

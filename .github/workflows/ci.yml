@@ -134,10 +134,15 @@ jobs:
       - name: Browser tests
         run: npm run test:browser
       - name: Visual regression
+        id: visual
         run: npm run test:visual
-      # On a mismatch: the actual screenshots and the diffs, for review or as new baselines.
+      # On a mismatch: render the would-be baselines too, and upload them with Vitest's
+      # diff images, for review or to commit (docs/visual-testing.md).
+      - name: Render new baselines (after a mismatch)
+        if: failure() && steps.visual.outcome == 'failure'
+        run: npm run -w react-xlsx-viewer test:visual:update || true
       - uses: actions/upload-artifact@v7
-        if: failure()
+        if: failure() && steps.visual.outcome == 'failure'
         with:
           name: visual-diffs
           path: |
