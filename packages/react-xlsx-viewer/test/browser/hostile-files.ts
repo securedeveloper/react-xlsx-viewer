@@ -307,3 +307,18 @@ export function scriptLikeContent(): Promise<Uint8Array> {
     sheetXml: sheet(`<row r="1">${inlineStr('A1', SCRIPTY)}<c r="B1" s="1"><v>5</v></c>${inlineStr('C1', 'font', 2)}</row>`, '', '<cols><col min="2" max="2" width="60" customWidth="1"/></cols>'),
   });
 }
+
+/** One merge over the whole sheet (A1:XFD1048576) plus `count` small merges. */
+export function hugeMerges(count: number): Promise<Uint8Array> {
+  const merges = ['A1:XFD1048576', ...Array.from({ length: count }, (_, i) => `A${i * 2 + 3}:B${i * 2 + 3}`)];
+  return xlsx({ sheetXml: sheet(`<row r="1">${inlineStr('A1', 'everything')}</row>`, `<mergeCells count="${merges.length}">${merges.map((m) => `<mergeCell ref="${m}"/>`).join('')}</mergeCells>`) });
+}
+
+/** `count` distinct cell formats (fonts, fills, borders), each used by one cell. */
+export function manyStyles(count: number): Promise<Uint8Array> {
+  const fonts = Array.from({ length: count }, (_, i) => `<font><sz val="${8 + (i % 20)}"/><color rgb="FF${(i * 2654435761 >>> 8).toString(16).padStart(6, '0').slice(-6)}"/><name val="Font ${i}"/></font>`).join('');
+  const xfs = Array.from({ length: count }, (_, i) => `<xf numFmtId="0" fontId="${i + 1}" fillId="0" borderId="0" applyFont="1"/>`).join('');
+  const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="${NS}"><fonts count="${count + 1}"><font><sz val="11"/><name val="Calibri"/></font>${fonts}</fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="${count + 1}"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>${xfs}</cellXfs></styleSheet>`;
+  const rows = Array.from({ length: Math.ceil(count / 10) }, (_, r) => `<row r="${r + 1}">${Array.from({ length: 10 }, (_, c) => `<c r="${String.fromCharCode(65 + c)}${r + 1}" s="${r * 10 + c + 1}"><v>${r * 10 + c}</v></c>`).join('')}</row>`).join('');
+  return xlsx({ styles, sheetXml: sheet(rows) });
+}

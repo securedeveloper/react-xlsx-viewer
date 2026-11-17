@@ -111,6 +111,23 @@ describe('limits: bounded memory and CPU', () => {
     expect(m.el.querySelectorAll('[role="gridcell"]').length).toBeLessThan(2_000);
   });
 
+  it('a merge over the whole sheet and 20,000 more: the grid stays bounded and usable', async () => {
+    const m = await open(await H.hugeMerges(20_000));
+    expect(cell(m.el, 0, 0).textContent).toBe('everything');
+    expect(m.el.querySelectorAll('[role="gridcell"]').length).toBeLessThan(2_000);
+    const scroller = m.el.querySelector<HTMLElement>('.xv-scroll')!;
+    scroller.scrollTop = scroller.scrollHeight;
+    scroller.dispatchEvent(new Event('scroll'));
+    await nextFrame();
+    expect(m.el.querySelectorAll('[role="gridcell"]').length).toBeLessThan(2_000);
+  });
+
+  it('60,000 distinct cell formats', async () => {
+    const m = await open(await H.manyStyles(60_000));
+    expect(cell(m.el, 0, 1).textContent).toBe('1');
+    expect(m.el.querySelectorAll('[role="gridcell"]').length).toBeLessThan(2_000);
+  });
+
   it('XML nested deeper than maxXmlDepth (64)', async () => {
     expectError(await open(await H.deepXml(200)), DEFAULT_LABELS.errors.tooLarge('maxXmlDepth'), 'LIMIT_EXCEEDED', { limit: 'maxXmlDepth' });
   });

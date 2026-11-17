@@ -5,8 +5,8 @@ const config: ViteUserConfig = defineConfig({
     environment: 'jsdom',
     globals: true,
     include: ['test/**/*.test.{ts,tsx}'],
-    // test/browser and test/perf run in Chromium (npm run test:browser, npm run perf).
-    exclude: ['test/browser/**', 'test/perf/**', '**/node_modules/**'],
+    // test/browser, test/visual and test/perf run in Chromium (npm run test:browser, test:visual, perf).
+    exclude: ['test/browser/**', 'test/visual/**', 'test/perf/**', '**/node_modules/**'],
   },
 });
 
