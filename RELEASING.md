@@ -22,7 +22,7 @@ When a release makes sense (Afzal or the team lead decides):
 
 ```sh
 git switch -c release-<version> origin/main
-npm run version-packages     # changeset version + version constant + lockfile sync
+npm run version-packages     # changeset version + prerelease counter + version constant + lockfile sync
 git diff                     # review the version bump and CHANGELOG.md
 ```
 
@@ -31,22 +31,46 @@ git diff                     # review the version bump and CHANGELOG.md
 - bumps `packages/react-xlsx-viewer/package.json`,
 - writes `packages/react-xlsx-viewer/CHANGELOG.md`.
 
-It then runs `scripts/sync-version.mjs`, which sets the `version` constant in `packages/react-xlsx-viewer/src/index.ts` to the new version (`changeset version` never edits source files). It fails if it can't find exactly one such constant, so renaming the constant can't silently break the sync. Last, it runs `npm install --package-lock-only`. Without that step, `package-lock.json` would still list the old version, and `npm ci` (in CI and in the release job) would fail.
+It then runs `scripts/reset-pre-counter.mjs`, which restarts the prerelease number at 0 when the prerelease tag changed (see [§3](#3-prereleases-pre-mode)), and `scripts/sync-version.mjs`, which sets the `version` constant in `packages/react-xlsx-viewer/src/index.ts` to the new version (`changeset version` never edits source files). It fails if it can't find exactly one such constant, so renaming the constant can't silently break the sync. Last, it runs `npm install --package-lock-only`. Without that step, `package-lock.json` would still list the old version, and `npm ci` (in CI and in the release job) would fail.
 
 Open the pull request. Its **Release dry run** CI job shows what merging would do. The "Release preview" step says which version would be published, or "no release". The job also runs `npm publish --dry-run` with the dist-tag that would be used.
 
 ## 3. Prereleases (pre mode)
 
-Prereleases go out on the `next` dist-tag, so `npm install react-xlsx-viewer` keeps getting 0.0.1 (`latest`, the name reservation) until 1.0.0 is published. The repository is in pre mode now (`.changeset/pre.json`, tag `alpha`).
+Prereleases go out on the `next` dist-tag, so `npm install react-xlsx-viewer` keeps getting 0.0.1 (`latest`, the name reservation) until 1.0.0 is published. The repository is in pre mode with the tag `beta` (`.changeset/pre.json`). The last alpha was 1.0.0-alpha.2, and the next release is 1.0.0-beta.0.
+
+Pre mode is Changesets 3's own format. `.changeset/pre.json` holds just `{ "mode": "pre", "tag": "<tag>" }`. `changeset version` moves the changesets it consumed into `.changeset/pre/`. Later prereleases skip them there, and the final release picks them all up again. Don't edit or delete the files in `.changeset/pre/` by hand.
+
+Any version with a prerelease part (`-beta.0`, `-rc.1`, ...) is published with `--tag next` and marked as a prerelease on GitHub. A plain version (`1.0.0`) goes to `latest`.
+
+### Switching the tag (alpha → beta → rc)
+
+`changeset pre enter` refuses to run while in pre mode, so a tag switch is a one-line edit:
+
+1. On a branch, change `"tag"` in `.changeset/pre.json` (for example `"beta"` → `"rc"`). Change nothing else, and don't bump the version. Open a pull request with that change. Merging it publishes nothing, because the version doesn't change.
+2. Cut the next release pull request as usual (§2), with at least one pending changeset.
+
+Changesets numbers the next prerelease from the current version (`prerelease[1] + 1`) and keeps counting across a tag switch: on its own, `changeset version` would turn `1.0.0-alpha.2` into `1.0.0-beta.3`. `npm run version-packages` therefore runs `scripts/reset-pre-counter.mjs` right after it. The script is shared verbatim with javascript-excel and the other family repositories.
+- It compares the package version with the one committed at `HEAD`.
+- When the prerelease tag differs, it rewrites the new version to `-<tag>.0` in every changed `package.json` (the package itself and `apps/playground`, which depends on it) and in the `CHANGELOG.md` heading.
+- The version-constant sync and the lockfile update then use that version.
+
+So the release after `1.0.0-alpha.2` is `1.0.0-beta.0`, and the ones after it are `beta.1`, `beta.2`, .... A release with the same tag, a first prerelease and a final version are left alone.
+
+Checked with a dry run, on a scratch clone of the branch that switched to `"beta"`, with two pending patch changesets. `npm run version-packages` gave `1.0.0-beta.0` in all of:
+- `packages/react-xlsx-viewer/package.json`;
+- `CHANGELOG.md` (`## 1.0.0-beta.0`);
+- the `version` constant in `src/index.ts`;
+- `apps/playground/package.json`;
+- `package-lock.json`.
+
+### Exiting pre mode (the final 1.0.0)
 
 ```sh
-npx changeset pre enter alpha     # or beta / rc; commit .changeset/pre.json
-npm run version-packages          # e.g. 1.0.0-alpha.2, 1.0.0-alpha.3, ...
-npx changeset pre exit            # then `pre enter beta` for 1.0.0-beta.0, or exit for the final version
-npm run version-packages          # e.g. 1.0.0
+git switch -c release-1.0.0 origin/main
+npx changeset pre exit            # sets "mode": "exit" in .changeset/pre.json
+npm run version-packages          # 1.0.0
 ```
-
-Any version with a prerelease part (`-alpha.3`, `-beta.0`, ...) is published with `--tag next` and marked as a prerelease on GitHub. A plain version (`1.0.0`) goes to `latest`.
 
 ## 4. What happens on merge
 

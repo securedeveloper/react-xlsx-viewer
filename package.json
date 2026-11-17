@@ -21,7 +21,7 @@
     "smoke": "node scripts/smoke.mjs",
     "consumer-ts": "node scripts/consumer-ts.mjs",
     "test:release": "node --test \"scripts/*.test.mjs\"",
-    "version-packages": "changeset version && node scripts/sync-version.mjs --package packages/react-xlsx-viewer --file packages/react-xlsx-viewer/src/index.ts && npm install --package-lock-only --no-audit --no-fund"
+    "version-packages": "changeset version && node scripts/reset-pre-counter.mjs --package packages/react-xlsx-viewer && node scripts/sync-version.mjs --package packages/react-xlsx-viewer --file packages/react-xlsx-viewer/src/index.ts && npm install --package-lock-only --no-audit --no-fund"
   },
   "devDependencies": {
     "@changesets/cli": "3.0.3",
