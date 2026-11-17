@@ -458,7 +458,7 @@ Decided by the plan: **DOM, not canvas**, for real accessibility. Canvas is eval
 - **Overflow and `####`** follow Excel's rules:
   - general- or left-aligned, unwrapped text spills into empty neighbours in the reading direction;
   - centred text spills both ways;
-  - numbers never spill; they show `####` when they don't fit.
+  - numbers never spill; they show `####` when they don't fit, decided with the file font's metrics where a fallback font is drawn (ux.md §8.3, issue #16).
   - Both need measurement (§3.2) and are computed for the rendered window plus the spill reach.
 - **Rotation, vertical text, indent, shrink-to-fit, `fill` and `distributed` alignment** are covered in the table in §8.
 

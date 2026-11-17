@@ -226,15 +226,21 @@ When the reader reports content the viewer doesn't show (`UNSUPPORTED_PART`: cha
   |---|---|
   | Calibri | `Calibri, Carlito, "Segoe UI", system-ui, sans-serif` |
   | Cambria | `Cambria, Caladea, Georgia, serif` |
-  | Arial | `Arial, "Liberation Sans", Helvetica, sans-serif` |
-  | Times New Roman | `"Times New Roman", "Liberation Serif", Times, serif` |
-  | Courier New | `"Courier New", "Liberation Mono", monospace` |
+  | Arial | `Arial, "Liberation Sans", Arimo, Helvetica, sans-serif` |
+  | Times New Roman | `"Times New Roman", "Liberation Serif", Tinos, Times, serif` |
+  | Courier New | `"Courier New", "Liberation Mono", Cousine, monospace` |
   | Aptos | `Aptos, system-ui, sans-serif` `[to verify: a metric-compatible open alternative]` |
   | anything else | `"<name>", <generic family from the font's family class>` |
 
-  Carlito, Caladea and the Liberation fonts are metric-compatible with the fonts they follow, so column fits match where they are installed.
+  Carlito, Caladea, the Liberation fonts and Arimo, Tinos and Cousine (common on ChromeOS and Linux) are metric-compatible with the fonts they follow, so column fits match where they are installed.
 - **No downloads.** The viewer never downloads a font (no web fonts, no `@font-face` with remote URLs).
-- **Measurement.** Text measurement (api.md §3.2) uses the same stack, so overflow and `####` decisions match what is drawn.
+- **Measurement.** Text measurement (api.md §3.2) uses the same stack, so overflow, shrink-to-fit and fill match what is drawn.
+- **`####` uses the file font's metrics (issue #16).** Where neither the file font nor a metric-compatible one is installed, the fallback is usually wider (Calibri's digits are 0.507 em wide), and numbers whose column was sized for Calibri would show `####`. So whether a number fits is decided with the file font's widths, as Excel decides it for the author:
+  - The viewer knows the widths of digits, `,`, `.`, `-` and space in Calibri, Arial, Times New Roman and Courier New (regular and bold; italic matches regular), read from the fonts' tables (Calibri's from Carlito). Other characters, such as a date's letters or a currency sign, are measured in the drawn font and scaled by the ratio of the two digit widths.
+  - If the drawn digits match the file font's within 1 %, the file font or a metric-compatible one is installed and the number is measured as drawn.
+  - A number that fits in the file font but not in the fallback is drawn slightly smaller so it fits (as shrink-to-fit would), never clipped: a clipped number would show a wrong value.
+  - A number that doesn't fit in the file font shows `####`, even where a narrower fallback could draw it, as in Excel.
+  - For other fonts (Cambria, Aptos, anything else) the widths aren't known and the decision uses the drawn font. Installing the file font, or a metric-compatible one, or mapping it with the `fonts` prop, gives exact fits.
 
 ## 9. Accessibility checklist
 

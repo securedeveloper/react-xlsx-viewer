@@ -6,7 +6,9 @@ import { createRef, StrictMode, version as reactVersion } from 'react';
 import { version as reactDomVersion } from 'react-dom';
 import { toUint8Array, type CellInput, type Workbook } from 'javascript-excel';
 import pkg from '../package.json';
-import { DEFAULT_LABELS, XlsxViewer, useWorkbook, version, type XlsxViewerHandle } from '../src/index';
+import { DEFAULT_FONT_MAP, DEFAULT_LABELS, XlsxViewer, useWorkbook, version, type XlsxViewerHandle } from '../src/index';
+import { numberMetrics } from '../src/fonts';
+import { fileFontWidth } from '../src/measure';
 import { patternCss } from '../src/grid';
 
 const book = (): Workbook<CellInput> => ({
@@ -205,5 +207,25 @@ describe('loading', () => {
     }
     render(<Probe />);
     expect(screen.getByText('idle')).toBeTruthy();
+  });
+});
+
+describe('fonts', () => {
+  it('maps Office fonts to installed metric-compatible fonts, never web fonts', () => {
+    expect(DEFAULT_FONT_MAP['calibri']).toContain('Carlito');
+    expect(DEFAULT_FONT_MAP['arial']).toMatch(/"Liberation Sans", Arimo/);
+    expect(DEFAULT_FONT_MAP['times new roman']).toMatch(/"Liberation Serif", Tinos/);
+    expect(DEFAULT_FONT_MAP['courier new']).toMatch(/"Liberation Mono", Cousine/);
+  });
+
+  it('knows the number metrics of common file fonts, case-insensitively (issue #16)', () => {
+    expect(numberMetrics('Calibri', false)?.digit).toBe(1038);
+    expect(numberMetrics('CALIBRI', true)?.['.']).toBe(547);
+    expect(numberMetrics('Arial', false)?.digit).toBe(1139);
+    expect(numberMetrics('Aptos', false)).toBeUndefined();
+  });
+
+  it('measures as drawn where nothing can be measured (jsdom)', () => {
+    expect(fileFontWidth('4,270.50', numberMetrics('Calibri', true), 14.67, '700 14.67px monospace')).toBeNull();
   });
 });
