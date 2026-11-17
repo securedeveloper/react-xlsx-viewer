@@ -1,0 +1,235 @@
+{
+  "$comment": "Budgets for the Performance job (scripts/perf-gate.mjs, docs/api.md §9.2). Each check reads `path` from perf-results.json (or bundle-size.json for source \"bundle\") and fails above `max`; `warn` only flags. kind \"none\": the value must be null, 0 or an empty list. Times in ms, sizes in MB or KiB as the unit says. Set from 15 CI runs on 2026-11-16/17 (Chromium 159, ubuntu-latest): deterministic values get a small margin, timings the observed max x 1.5 or more, never above the 200 ms INP goal. Raising a budget is a deliberate edit in the pull request that needs it.",
+  "checks": [
+    {
+      "group": "A",
+      "label": "Rendered gridcells, vertical scroll",
+      "path": "scroll.vertical.maxCells",
+      "max": 1000,
+      "observed": "861",
+      "unit": ""
+    },
+    {
+      "group": "A",
+      "label": "Rendered gridcells, horizontal scroll",
+      "path": "scroll.horizontal.maxCells",
+      "max": 1000,
+      "observed": "907",
+      "unit": ""
+    },
+    {
+      "group": "A",
+      "label": "Long animation frames while scrolling",
+      "path": "scroll.longAnimationFrames.count",
+      "max": 0,
+      "observed": "0",
+      "unit": ""
+    },
+    {
+      "group": "A",
+      "label": "Long animation frames, auto-fit scroll",
+      "path": "autoFit.longAnimationFrames",
+      "max": 0,
+      "observed": "0",
+      "unit": ""
+    },
+    {
+      "group": "A",
+      "label": "Long frame while opening the .xlsx (main thread)",
+      "path": "openXlsx.longestFrameMs",
+      "kind": "none",
+      "observed": "none"
+    },
+    {
+      "group": "A",
+      "label": "Long frame while opening the .xlsx (worker)",
+      "path": "openXlsxWorker.longestFrameMs",
+      "kind": "none",
+      "observed": "none"
+    },
+    {
+      "group": "A",
+      "label": "Memory: workbook model, 500,000 cells",
+      "path": "memory.modelMB",
+      "max": 28,
+      "unit": "MB",
+      "observed": "25.8"
+    },
+    {
+      "group": "A",
+      "label": "Memory: mounted viewer",
+      "path": "memory.viewerMountedMB",
+      "max": 5,
+      "unit": "MB",
+      "observed": "3.9"
+    },
+    {
+      "group": "A",
+      "label": "Memory: retained after release",
+      "path": "memory.retainedAfterReleaseMB",
+      "max": 0.5,
+      "unit": "MB",
+      "observed": "0–0.1"
+    },
+    {
+      "group": "A",
+      "label": "Bundle: initial chunk, gzip",
+      "source": "bundle",
+      "path": "initial.gzip",
+      "max": 36,
+      "unit": "KiB",
+      "observed": "32.7–33.2"
+    },
+    {
+      "group": "A",
+      "label": "Bundle: everything, gzip",
+      "source": "bundle",
+      "path": "all.gzip",
+      "max": 64,
+      "unit": "KiB",
+      "observed": "59.1–59.5"
+    },
+    {
+      "group": "A",
+      "label": "Bundle: styles.css, gzip",
+      "source": "bundle",
+      "path": "css.gzip",
+      "max": 3.5,
+      "unit": "KiB",
+      "observed": "2.5–2.7"
+    },
+    {
+      "group": "B",
+      "label": "Arrow key → next frame, p95",
+      "path": "keyboard.arrow.p95",
+      "max": 33.4,
+      "observed": "17.4–18.5"
+    },
+    {
+      "group": "B",
+      "label": "Click → next frame, p95",
+      "path": "click.p95",
+      "max": 33.4,
+      "observed": "16.7–17.0"
+    },
+    {
+      "group": "B",
+      "label": "Shift+arrow → next frame, p95",
+      "path": "keyboard.shiftExtend.p95",
+      "max": 50,
+      "observed": "16.9–27.0"
+    },
+    {
+      "group": "B",
+      "label": "PageDown → next frame, p95",
+      "path": "keyboard.pageDown.p95",
+      "max": 150,
+      "observed": "42.8–82.5"
+    },
+    {
+      "group": "B",
+      "label": "PageDown → next frame, max",
+      "path": "keyboard.pageDown.max",
+      "max": 200,
+      "observed": "47.5–106.5"
+    },
+    {
+      "group": "B",
+      "label": "Ctrl+arrow / Ctrl+Home/End → next frame, p95",
+      "path": "keyboard.ctrlJumps.p95",
+      "max": 200,
+      "observed": "27.9–109.9 (4 samples then)"
+    },
+    {
+      "group": "B",
+      "label": "React commit while scrolling (vertical), p95",
+      "path": "scroll.vertical.commitMs.p95",
+      "max": 33,
+      "observed": "8.6–20.1"
+    },
+    {
+      "group": "C",
+      "label": "Copy 50,000 cells (TSV + HTML)",
+      "path": "copy[cells=50000].ms",
+      "max": 250,
+      "warn": 200,
+      "observed": "82–152"
+    },
+    {
+      "group": "C",
+      "label": "Selection summary, 1,000,000 cells",
+      "path": "stats[cells=1000000].ms",
+      "max": 60,
+      "observed": "14–28"
+    },
+    {
+      "group": "C",
+      "label": "First cells, 2,000,000-cell workbook",
+      "path": "firstCells.mountToFirstPaintMs",
+      "max": 600,
+      "observed": "164–323"
+    },
+    {
+      "group": "C",
+      "label": "Open 2.7 MB .xlsx to the grid (main thread)",
+      "path": "openXlsx.toGridMs",
+      "max": 1500,
+      "observed": "456–834"
+    },
+    {
+      "group": "C",
+      "label": "Open 2.7 MB .xlsx to the grid (worker)",
+      "path": "openXlsxWorker.toGridMs",
+      "max": 2000,
+      "observed": "681–1,303"
+    },
+    {
+      "group": "C",
+      "label": "Worker read, total",
+      "path": "workerRead.totalMs",
+      "max": 2000,
+      "observed": "594–1,049"
+    },
+    {
+      "group": "C",
+      "label": "Worker read: main-thread frame, max",
+      "path": "workerRead.mainThreadFrames.max",
+      "max": 34,
+      "observed": "16.7–16.8"
+    }
+  ],
+  "report": [
+    {
+      "label": "Scroll frames, vertical, p95 (runner-dependent: 16.7 or 33.4)",
+      "path": "scroll.vertical.frames.p95"
+    },
+    {
+      "label": "Dropped frames, vertical (of 300)",
+      "path": "scroll.vertical.droppedFrames"
+    },
+    {
+      "label": "Scroll frames, horizontal, p95",
+      "path": "scroll.horizontal.frames.p95"
+    },
+    {
+      "label": "Dropped frames, horizontal (of 100)",
+      "path": "scroll.horizontal.droppedFrames"
+    },
+    {
+      "label": "Scroll frames, diagonal, p95",
+      "path": "scroll.diagonal.frames.p95"
+    },
+    {
+      "label": "Dropped frames, diagonal (of 200)",
+      "path": "scroll.diagonal.droppedFrames"
+    },
+    {
+      "label": "Auto-fit scroll frames, p95",
+      "path": "autoFit.frames.p95"
+    },
+    {
+      "label": "Dropped frames, auto-fit (of 300)",
+      "path": "autoFit.droppedFrames"
+    }
+  ]
+}

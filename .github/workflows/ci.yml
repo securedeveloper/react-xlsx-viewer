@@ -176,7 +176,8 @@ jobs:
 
   # The Performance harness (packages/react-xlsx-viewer/test/perf, docs/api.md §9) in
   # Chromium: scroll frames, keyboard and click response, DOM size, copy and summary
-  # cost, opening an .xlsx. Reports to the job summary and an artifact; not required.
+  # cost, opening an .xlsx. Reports to the job summary and an artifact, then gates on
+  # perf-budget.json (scripts/perf-gate.mjs, docs/api.md §9.2).
   performance:
     name: Performance
     runs-on: ubuntu-latest
@@ -201,11 +202,16 @@ jobs:
       - name: Summary
         run: node scripts/perf-summary.mjs
       - name: Bundle size
-        run: npm run build -w react-xlsx-viewer && node scripts/bundle-size.mjs
+        run: npm run build -w react-xlsx-viewer && node scripts/bundle-size.mjs --json bundle-size.json
       - uses: actions/upload-artifact@v7
         with:
           name: performance
-          path: packages/react-xlsx-viewer/perf-results.json
+          path: |
+            packages/react-xlsx-viewer/perf-results.json
+            bundle-size.json
+      # Fails the job when a budget is exceeded; the table goes to the job summary.
+      - name: Performance gate
+        run: node scripts/perf-gate.mjs
 
   # Consumer TypeScript matrix: one tarball, type-checked by a consumer project
   # on several TypeScript versions, @types/react majors and moduleResolution modes.

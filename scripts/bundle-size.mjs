@@ -1,7 +1,8 @@
 // Bundle size of an app that imports only <XlsxViewer> (docs/api.md §9):
 // built with Vite from the built package, React external, minified; reports
 // raw and gzip sizes of the JS that ships with the viewer, and of the CSS.
-//   npm run build -w react-xlsx-viewer && node scripts/bundle-size.mjs
+//   npm run build -w react-xlsx-viewer && node scripts/bundle-size.mjs [--json bundle-size.json]
+// --json also writes the sizes in bytes, for scripts/perf-gate.mjs.
 import { appendFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
@@ -38,6 +39,11 @@ try {
     `| styles.css | ${kb(css.length)} | ${kb(gzipSync(css).length)} |`,
   ].join('\n');
   console.log(table);
+  const jsonAt = process.argv.indexOf('--json');
+  if (jsonAt > 0) {
+    const bytes = (b) => ({ minified: Buffer.byteLength(b), gzip: gzipSync(b).length });
+    writeFileSync(resolve(process.argv[jsonAt + 1] ?? 'bundle-size.json'), `${JSON.stringify({ initial: bytes(initial), all: bytes(all), css: bytes(css) }, null, 2)}\n`);
+  }
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${table}\n`);
 } finally {
   rmSync(work, { recursive: true, force: true });

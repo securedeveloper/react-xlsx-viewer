@@ -92,7 +92,9 @@ it('measures the viewer', async () => {
   for (let i = 0; i < 100; i++) arrows.push(await press(i % 10 === 9 ? 'ArrowRight' : 'ArrowDown'));
   const pages: number[] = [];
   for (let i = 0; i < 30; i++) pages.push(await press('PageDown'));
-  const jumps: number[] = [await press('ArrowDown', { ctrlKey: true }), await press('ArrowUp', { ctrlKey: true }), await press('End', { ctrlKey: true }), await press('Home', { ctrlKey: true })];
+  // 24 samples (6 rounds of 4), so the p95 isn't simply the slowest press (the Performance gate uses it).
+  const jumps: number[] = [];
+  for (let i = 0; i < 6; i++) jumps.push(await press('ArrowDown', { ctrlKey: true }), await press('ArrowUp', { ctrlKey: true }), await press('End', { ctrlKey: true }), await press('Home', { ctrlKey: true }));
   const extend: number[] = [];
   for (let i = 0; i < 30; i++) extend.push(await press('ArrowDown', { shiftKey: true }));
   results['keyboard'] = { arrow: stat(arrows), pageDown: stat(pages), ctrlJumps: stat(jumps), shiftExtend: stat(extend) };

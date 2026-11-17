@@ -517,11 +517,11 @@ Targets are stated as **measurable goals**. Where a threshold is a public guidel
 | Time to first cells | "File chosen" mark → first grid paint | Reported per fixture size; XLV-3 baseline in §9.1 | `performance.now()` around mount, until the grid is painted |
 | Memory | JS heap per file after a full GC: the model, the render model, the mounted viewer, and what stays after release | Render-model overhead O(rows + cols + distinct styles + rendered cells), not O(cells); viewer overhead independent of file size; nothing retained after unmount. XLV-4 baseline in §9.1 | `Runtime.getHeapUsage` after `HeapProfiler.collectGarbage` over CDP, from the harness's `heapUsed` command |
 | Copy doesn't freeze | Time to build TSV + HTML for the copy limit | ≤ 200 ms (INP "good") on the CI runner, which set `COPY_LIMIT` to 50,000 cells (153 ms there) | Harness |
-| Bundle size | Minified + gzipped size of `XlsxViewer` with its engine imports | Reported per PR; XLV-3 baseline 30.3 KiB gzipped initially, 56.7 KiB with the lazily loaded reader (§9.1). A budget follows once the viewer is feature-complete | `scripts/bundle-size.mjs` (Vite, React external) in the `Performance` job |
+| Bundle size | Minified + gzipped size of `XlsxViewer` with its engine imports | Budget in §9.2 (initial ≤ 36 KiB, everything ≤ 64 KiB gzip); XLV-3 baseline 30.3 / 56.7 KiB (§9.1) | `scripts/bundle-size.mjs` (Vite, React external) in the `Performance` job |
 
 **Fixtures** come from the engine's corpus generator (`test/fixtures/read/generate_corpus.py`): dense numbers, unique strings, heavily styled, many merges, wide (16k columns), tall (1M rows), RTL, frozen and hidden rows/columns. They are generated in CI, not committed.
 
-**CI job.** A `Performance` job reports every metric in the job summary on each PR. It is non-required until the baseline is stable, then the thresholds above gate. Machine-dependent numbers are compared with the same job's `main` baseline, not with absolute values.
+**CI job.** A `Performance` job reports every metric in the job summary on each PR and gates on the budgets in §9.2.
 
 ### 9.1 Measured in XLV-3 and XLV-4
 
@@ -559,7 +559,18 @@ Targets are stated as **measurable goals**. Where a threshold is a public guidel
 - **Rows are memoised,** so scrolling renders only the rows that enter the window. Before that, the local p95 frame was 33 ms.
 - **A zoom-unit bug** was found in the browser that jsdom couldn't show; a browser test now covers it.
 
-**Scroll smoothness on CI** depends on the runner. The `Performance` job is therefore non-required and reports rather than gates, as planned. Gating can compare against `main`'s own runs once enough of them exist.
+**Scroll smoothness on CI** depends on the runner, so scroll-frame p95 and dropped frames are reported, not gated (§9.2).
+
+### 9.2 The Performance gate
+
+The `Performance` job fails when a measure exceeds its budget in `perf-budget.json`. `scripts/perf-gate.mjs` checks `perf-results.json` and the bundle sizes against it and writes a pass / warn / fail table to the job summary. The budgets were set from 15 CI runs (2026-11-16/17, Chromium 159 on `ubuntu-latest`). Those runs come from two kinds of runner about 1.45× apart in speed, which explains most of the noise.
+
+- **A. Deterministic values, small margins.** Rendered gridcells ≤ 1,000 (861/907 measured). No long animation frames while scrolling, in auto-fit or while opening a file. Memory: model ≤ 28 MB, viewer ≤ 5 MB, retained ≤ 0.5 MB. Bundle gzip: initial ≤ 36 KiB, everything ≤ 64 KiB, CSS ≤ 3.5 KiB.
+- **B. Interaction, the measured worst × 1.5 or more and never above 200 ms (INP "good").** Arrow and click p95 ≤ 33.4 ms, Shift+arrow ≤ 50, PageDown p95 ≤ 150 and max ≤ 200, Ctrl+jumps p95 ≤ 200 (24 samples), scroll commit p95 ≤ 33.
+- **C. Throughput.** Copy 50,000 cells ≤ 250 ms (warning above 200), selection summary of 1,000,000 cells ≤ 60, first cells ≤ 600, opening the 2.7 MB file ≤ 1,500 (≤ 2,000 through the worker), worker read ≤ 2,000, and the main-thread frame while a worker reads ≤ 34.
+- **Reported, not gated.** Scroll-frame p95 and dropped frames depend on the runner: the vertical p95 is 16.7 or 33.4 ms, and 0–100 of 300 frames drop. The long-frame and DOM gates above catch real scroll regressions.
+
+The recorded runs are in `scripts/fixtures/perf`, and `scripts/perf-gate.test.mjs` checks that every one of them passes. Raising a budget is a deliberate edit to `perf-budget.json` in the pull request that needs it.
 
 **Canvas decision rule.** If the scroll and INP goals can't be met by the DOM grid on the largest fixtures after profiling, a canvas renderer is evaluated with an ARIA grid overlay, and its design is a separate document. Until then, DOM.
 
