@@ -66,9 +66,9 @@ The grid is **one tab stop** (WAI-ARIA grid pattern). Tab and Shift+Tab move foc
 
 | Key | Action |
 |---|---|
-| Arrow keys | Move one visible cell. A merged cell counts as one. In an RTL sheet, Left/Right move in the visual direction `[to verify against Excel]` |
+| Arrow keys | Move one visible cell. A merged cell counts as one. In an RTL sheet, Left/Right move in the visual direction (Left goes to the next column) `[to verify in Excel]` |
 | Ctrl + arrow | To the edge of the data region (Excel's rule, api.md §3.1) |
-| Home / Ctrl+Home | Start of the row / first cell of the sheet (below and after frozen panes, as Excel `[to verify]`) |
+| Home / Ctrl+Home | Start of the row / first cell of the sheet. Both stop after the frozen columns, and Ctrl+Home below the frozen rows, as in Excel `[to verify in Excel]` |
 | Ctrl+End | Last used cell |
 | PageUp / PageDown | One screen up/down |
 | Alt+PageUp / Alt+PageDown | One screen left/right |
@@ -78,7 +78,7 @@ The grid is **one tab stop** (WAI-ARIA grid pattern). Tab and Shift+Tab move foc
 | Ctrl+PageUp / Ctrl+PageDown | Previous / next sheet. Focus stays in the grid at that sheet's remembered cell |
 | Ctrl+C | Copy the selection (§3.3) |
 | Alt+Enter | Open the active cell's hyperlink (after the scheme check) |
-| Escape | Collapse the selection to the active cell; closes the link chip |
+| Escape | Collapse the selection to the active cell. In the link chip, focus goes back to the cell |
 | Ctrl + / Ctrl − | **Left to the browser** (page zoom). The viewer's zoom has its own controls |
 
 Every key in this table is listed in a "Keyboard shortcuts" dialog, opened from the status bar (a `?` button) and with Shift+? while the grid has focus.
@@ -133,7 +133,7 @@ Every key in this table is listed in a "Keyboard shortcuts" dialog, opened from 
   - In phase 1 it is a read-only text field. Typing an address and pressing Enter to jump there is phase 2. It is announced as "Cell address".
 - **Content** (right): a read-only, selectable text field, so users can copy part of a formula. It shows:
   - for a formula cell: `=` + formula text (with `_xlfn.` prefixes removed for display), in a monospace font. Array formulas show as `{=…}`;
-  - for other cells: the value as entered, not as formatted (as spreadsheet programs do). Numbers appear in full precision, dates as the locale's date (and time, if any) `[to verify against Excel's formula-bar display]`, and text as is;
+  - for other cells: the value as entered, not as formatted (as spreadsheet programs do). Numbers appear in full precision, dates as the locale's short date (built-in format 14), with the time (format 22) when there is one, a time alone as `h:mm:ss`, and text as is `[to verify in Excel: its formula-bar date and time display]`;
   - for formula cells, a small secondary line with the cached value ("Result: 2,230.50"), so the relation between the formula and the grid is explicit. For a formula without a cached value it reads "Result: not calculated".
 - **Long formulas** wrap in the field, which shows one line and can be resized taller.
 - **Accessible names.** The `=` before the content is a glyph, not an icon. The field's accessible name is "Formula" or "Value".
@@ -186,7 +186,7 @@ When the reader reports content the viewer doesn't show (`UNSUPPORTED_PART`: cha
 
 - **Grid name.** The grid is labelled "Sheet: {name}". The viewer region is labelled with the file name, or `aria-label`.
 - **Cell announcements.** A cell is announced by its displayed text and position.
-  - The position comes from the column and row header cells (`columnheader` "B", `rowheader` "4") and `aria-rowindex`/`aria-colindex`. Screen readers say "B, 4" or "row 4, column 2", depending on the reader `[to verify per screen reader]`.
+  - The position comes from the column and row header cells (`columnheader` "B", `rowheader` "4") and `aria-rowindex`/`aria-colindex`. Screen readers say "B, 4" or "row 4, column 2", depending on the reader; the manual pass ([a11y-manual-check.md](a11y-manual-check.md), steps 1–2) accepts either and records what each says.
   - Merged cells announce their span (`aria-colspan`/`aria-rowspan`).
   - Empty cells are announced as blank by the screen reader.
 - **Formulas.**
@@ -213,7 +213,7 @@ When the reader reports content the viewer doesn't show (`UNSUPPORTED_PART`: cha
 
 ### 8.2 Default theme
 
-- **Chrome.** A neutral grey scale with one accent colour, a desaturated indigo, as the default `--xv-accent` `[to verify: final values chosen with a contrast check]`. The accent is used for selection, focus rings and the active tab. It should read as this library's own, not as any office suite's.
+- **Chrome.** A neutral grey scale with one accent colour, a desaturated indigo, as the default `--xv-accent`: `#4f4fb3` in the light theme, `#a8a8ff` in the dark one. Contrast, measured: the light accent is 6.3:1 on the chrome background, 6.8:1 on white and 5.7:1 on the headers; the dark accent 7.9:1 on the dark chrome and 6.6:1 on the dark headers; the active-cell outline (`--xv-selection-line`) is 6.8:1 (light) and 4.3:1 (dark, `#6f6fd6`) on the white sheet. All pass WCAG's 3:1 for non-text and 4.5:1 for text, and the axe audit checks the chrome's text contrast in both themes. The accent is used for selection, focus rings and the active tab. It should read as this library's own, not as any office suite's.
 - **Light and dark.** The chrome follows `prefers-color-scheme`, and the sheet area keeps the file's colours (api.md §12 Q8).
 - **UI type and headers.** The UI uses the system UI font stack (`system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`). Header letters and numbers use tabular figures.
 - **Focus.** Focus rings are 2 px, always visible on keyboard focus (`:focus-visible`), and never removed.

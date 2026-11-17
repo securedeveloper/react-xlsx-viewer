@@ -83,6 +83,31 @@ describe('<XlsxViewer> grid', () => {
     expect(active()).toBe(cell(3, 2));
   });
 
+  it('Home and Ctrl+Home stop after the frozen panes; Left and Right follow the screen in an RTL sheet (docs/ux.md §3.1)', () => {
+    const rows = Array.from({ length: 6 }, (_, r) => Array.from({ length: 6 }, (_, c) => ({ value: r * 10 + c })));
+    const { unmount } = render(<XlsxViewer source={{ sheets: [{ name: 'S', rows, view: { freeze: { rows: 2, cols: 1 } } }] }} locale="en-US" />);
+    act(() => cell(0, 0).focus());
+    fireEvent.keyDown(active(), { key: 'ArrowDown' });
+    fireEvent.keyDown(active(), { key: 'ArrowDown' });
+    fireEvent.keyDown(active(), { key: 'ArrowDown' });
+    fireEvent.keyDown(active(), { key: 'ArrowRight' });
+    fireEvent.keyDown(active(), { key: 'ArrowRight' });
+    expect(active()).toBe(cell(3, 2));
+    fireEvent.keyDown(active(), { key: 'Home' });
+    expect(active()).toBe(cell(3, 1));
+    fireEvent.keyDown(active(), { key: 'Home', ctrlKey: true });
+    expect(active()).toBe(cell(2, 1));
+    unmount();
+    render(<XlsxViewer source={{ sheets: [{ name: 'S', rows, view: { rightToLeft: true } }] }} locale="en-US" />);
+    act(() => cell(0, 0).focus());
+    // Column A is on the right: Left goes to B, C; Right comes back.
+    fireEvent.keyDown(active(), { key: 'ArrowLeft' });
+    fireEvent.keyDown(active(), { key: 'ArrowLeft' });
+    expect(active()).toBe(cell(0, 2));
+    fireEvent.keyDown(active(), { key: 'ArrowRight' });
+    expect(active()).toBe(cell(0, 1));
+  });
+
   it('shows formula text and the cached result in the formula bar', () => {
     render(<XlsxViewer source={book()} locale="en-US" defaultSelection={{ ranges: [{ start: { row: 2, col: 2 }, end: { row: 2, col: 2 } }], active: { row: 2, col: 2 } }} />);
     expect(screen.getByLabelText('Formula')).toHaveProperty('value', '=SUM(B2:B3)');

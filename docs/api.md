@@ -1,9 +1,9 @@
 # react-xlsx-viewer 1.0: API and architecture design (phase 1, read-only viewer)
 
-Status: **design, decided.** Afzal accepted all sixteen recommendations in [§12](#12-design-decisions) on 2026-11-16. Nothing here is implemented yet. The UX side (layout, keyboard, screen readers, look) is in [ux.md](ux.md).
+Status: **design, decided, implemented in 1.0.0-alpha.** Afzal accepted all sixteen recommendations in [§12](#12-design-decisions) on 2026-11-16. The UX side (layout, keyboard, screen readers, look) is in [ux.md](ux.md); using the package is in the [user guide](guide.md).
 
 Conventions follow javascript-excel's [docs/api.md](https://github.com/securedeveloper/javascript-excel/blob/main/docs/api.md) (cited below as "engine §n"):
-- `[to verify]` marks a fact about Excel, a browser or a standard that must be checked before code relies on it.
+- `[to verify]` marks a fact about Excel, a browser or a standard that must be checked before code relies on it. `[to verify in Excel]` marks the ones only Excel can answer; the code's current behaviour is stated next to each.
 - `[placeholder]` marks a number that has not been measured yet. No target in this document is a guess presented as a measurement.
 - Version numbers are the plan, not a commitment.
 
@@ -183,23 +183,23 @@ All colours in the render model are concrete `#RRGGBB` strings, resolved with `r
 - **Sizes.**
   - Column width in characters becomes px with the engine's file-width formula and `maxDigitWidth` (engine §3.3).
   - Row height in points becomes px as `pt × 96 / 72`.
-  - Missing sizes use `defaultColWidth`/`defaultRowHeight`, then Excel's defaults: 8.43 characters, and 15 pt for Calibri 11 `[to verify: default row height per default font]`.
+  - Missing sizes use `defaultColWidth`/`defaultRowHeight`, then Excel's defaults: 8.43 characters, and 15 pt for Calibri 11. The render model uses 15 pt whatever the workbook's default font is `[to verify in Excel: the default row height for other default fonts and sizes]`.
   - Hidden, or width/height 0, means size 0.
   - Pixel-exact layout is a non-goal (engine §1).
 - **Style precedence.** The engine reader returns each cell's complete `xf` as `cell.style` (engine §3.5.7). Cells without a `<c>` element take the row style, then the column style, then the sheet default, which is how Excel shows them.
 - **Shared style resolution.** The reader shares one frozen `Style` object per `xf` (engine §12 Q8). The resolved `RenderStyle` is therefore cached in a `WeakMap<Style, RenderStyle>`, so a 100k-cell sheet with 20 distinct formats resolves 20 styles.
 - **Border conflicts.**
   - Two adjacent cells can both define their shared edge (A1's right border and B1's left border). The model draws one edge.
-  - The heavier style wins (by a fixed weight order `[to verify: Excel's precedence on screen]`); on a tie, the right/bottom cell wins.
+  - The heavier style wins, by a fixed weight order: hair < dotted < dashDotDot < dashDot < dashed < thin < mediumDashDotDot < slantDashDot < mediumDashDot < mediumDashed < medium < double < thick (javascript-excel's `/render`). On a tie, the right/bottom cell wins `[to verify in Excel: its precedence on screen]`.
   - Each cell draws only its top and left edges, plus right/bottom at the sheet extent or at a merge boundary. No edge is drawn twice.
 - **Merges.**
   - The anchor carries `merge.rows`/`merge.cols` and the anchor's style and value.
   - Covered cells return `null`, even if the file stores values there (Excel hides them, engine §3.6).
-  - A merge that crosses a frozen boundary is clipped at the boundary, as Excel shows it `[to verify]`.
+  - A merge that crosses a frozen boundary is drawn whole from its anchor: an anchor in the frozen rows or columns stays pinned, and the rest of the merge covers the scrolling cells under it (measured in Chromium). Excel is expected to clip it at the boundary `[to verify in Excel]`; if it does, the viewer should clip too.
   - Hidden rows inside a merge shrink it.
 - **Formula display.**
   - `=` is prefixed.
-  - Prefixes `_xlfn.`, `_xlfn._xlws.` and `_xlpm.` are removed for display only `[to verify: the full prefix list]`.
+  - Prefixes `_xlfn.`, `_xlfn._xlws.`, `_xlws.` and `_xlpm.` are removed for display only, outside string literals (javascript-excel's `/render`) `[to verify against MS-XLSX and Excel: the full prefix list, for example _xludf. and _xleta.]`.
   - Array formulas are flagged, so the formula bar shows `{=…}`.
   - The text is never parsed or evaluated.
 - **Hyperlinks.**
@@ -208,7 +208,7 @@ All colours in the render model are concrete `#RRGGBB` strings, resolved with `r
 - **Data-region edges (Ctrl+arrow).**
   - From a non-empty cell whose neighbour is non-empty, move to the last non-empty cell before a blank.
   - Otherwise move to the next non-empty cell, or to the sheet edge.
-  - Hidden rows and columns are skipped `[to verify against Excel for hidden cells]`.
+  - Hidden rows and columns are skipped `[to verify in Excel: Ctrl+arrow over hidden cells]`.
   - This is computed on the sparse rows, so it costs O(cells in that row or column), not O(extent).
 
 ### 3.2 What the render model leaves to the DOM layer
@@ -219,9 +219,9 @@ All colours in the render model are concrete `#RRGGBB` strings, resolved with `r
 
 ## 4. Engine addition B: the number-format renderer (`javascript-excel/format`)
 
-The engine decided not to render number formats in 2.0 and planned `javascript-excel/format` for later (engine §3.5.5, §12 Q14; roadmap row 3.x). **The viewer can't be faithful without it.** Dates would show as ISO strings or serials, currency and percentages as bare numbers, and `[Red]` negatives in black. So this design adds (decided, §12 Q1):
+The engine had planned `javascript-excel/format` for 3.x (engine §3.5.5, §12 Q14). **The viewer can't be faithful without it.** Dates would show as ISO strings or serials, currency and percentages as bare numbers, and `[Red]` negatives in black. So this design added it (decided, §12 Q1), and it **shipped in javascript-excel 2.0** (first in 2.0.0-alpha.2):
 
-> **JSE-18 · `javascript-excel/format`: number-format renderer.** Moves from the 3.x row of the engine roadmap to a 2.x minor, independent of the 2.1–2.5 phases (it touches no file parts). Prerequisite for viewer 1.0. Also used by `autoWidth` (formatted widths), import previews in react-data-import, and `fromTable`/`toCsv` "as displayed" options later.
+> **JSE-18 · `javascript-excel/format`: number-format renderer.** Moved from the 3.x row of the engine roadmap into 2.0 itself (it touches no file parts). Prerequisite for viewer 1.0. Also used by `autoWidth` (formatted widths), import previews in react-data-import, and `fromTable`/`toCsv` "as displayed" options later.
 
 API sketch (final names are decided in JSE-18):
 
@@ -234,7 +234,7 @@ export function compileFormat(code: string): CompiledFormat;                    
 export interface FormatOptions {
   locale?: string;          // BCP 47; default 'en-US'
   date1904?: boolean;       // serials are counted from the workbook's epoch
-  /** Width in characters available for 'General' (Excel shortens General numbers to fit). Default 11 [to verify]. */
+  /** Width in characters available for 'General' (Excel shortens General numbers to fit). Default 11 (see the General rule below). */
   generalWidth?: number;
 }
 export type FormatContext = FormatOptions;
@@ -248,7 +248,7 @@ export interface FormattedValue {
 
 **Inputs are serials, not `Date`s.** The viewer reads with `dates: 'serial'` (engine §5.2), so formatting is a pure function of `(serial, code, locale, date1904)`. It doesn't depend on the viewer's time zone, and every Excel date and time rule (1900 leap-year bug, elapsed time) applies to the raw number. `formatValue` also accepts a `Date` by converting it with `dateToSerial`, for callers that read with dates on.
 
-**What JSE-18 must cover** (ECMA-376 §18.8.31 `[to verify each against Excel]`):
+**What JSE-18 covers** (ECMA-376 §18.8.31). Each token class has table tests in javascript-excel, its LibreOffice job compares thousands of `(value, code)` pairs, and the Excel-only checks are in the engine's conformance checklist (`docs/conformance.md`, files `10-number-formats.xlsx` and `11-number-formats-locale.xlsx`):
 - **Format structure:**
   - up to four sections (positive; negative; zero; text);
   - conditions (`[>=100]`);
@@ -269,19 +269,19 @@ export interface FormattedValue {
   - `d dd ddd dddd`, `m mm mmm mmmm mmmmm` (with the month/minute rule), `yy yyyy`;
   - `h hh m mm s ss`, `AM/PM` and `A/P`, fractional seconds `.0`–`.000`;
   - elapsed `[h] [m] [s]`;
-  - the `e`/`g`/`b` era tokens where the locale supports them `[to verify]`.
+  - the era tokens: `e` (the year, Gregorian calendar), `b` (the Buddhist year, +543) and `g` (the era name), as implemented in `/format`; East Asian calendars are on the engine's Excel checklist.
 - **Locale tags** `[$€-407]` and `[$-409]`. The tag's LCID selects separators and names. The currency symbol is printed as written.
 - **Built-in ids:**
   - built-in ids 0–49 (engine §11.2);
   - the locale-dependent ones (14, 22, 27–36, 50–58) map to the locale's short-date and time patterns.
 - **`General`:**
-  - numbers with up to 11 characters (decimal or scientific, Excel's rule `[to verify]`), text as is, booleans `TRUE`/`FALSE`, errors as written.
+  - numbers with up to 11 characters (decimal or scientific; implemented in `/format`, Excel's exact rounding rule is on the engine's Excel checklist), text as is, booleans `TRUE`/`FALSE`, errors as written.
 
-**Locale data comes from the platform.** Month and day names, separators and short-date patterns come from `Intl.DateTimeFormat` and `Intl.NumberFormat`, so the module ships no locale tables. Excel replaces the `,` and `.` of a format code with the locale's group and decimal separators `[to verify]`. The module does the same with the `locale` option.
+**Locale data comes from the platform.** Month and day names, separators and short-date patterns come from `Intl.DateTimeFormat` and `Intl.NumberFormat`, so the module ships no locale tables. Excel replaces the `,` and `.` of a format code with the locale's group and decimal separators `[to verify in Excel: with a non-English system locale]`. The module does the same with the `locale` option.
 
 **Ground truth.** LibreOffice can export a workbook "as shown" to CSV in CI (the engine's conformance job already runs LibreOffice). That gives an automatic reference for thousands of `(value, code)` pairs. Where LibreOffice and Excel differ, Excel wins, and each difference is recorded in a manual-check table like the engine's `docs/conformance.md`.
 
-**Until JSE-18 ships**, the render model falls back to `cellText`, so XLV-2 to XLV-4 aren't blocked. Viewer 1.0 is not released on the fallback.
+**Without a `format` hook**, the render model falls back to `cellText`. The viewer always passes `formatCell`, so it never shows the fallback.
 
 ## 5. React API
 
@@ -433,24 +433,24 @@ Decided by the plan: **DOM, not canvas**, for real accessibility. Canvas is eval
 - **Frozen panes.**
   - Frozen rows and columns use `position: sticky` (top / `inset-inline-start`) inside the single scroll container.
   - Keeping one container keeps one grid in the accessibility tree and makes RTL work with logical properties.
-  - Frozen regions larger than the viewport are clipped, as Excel does `[to verify]`.
+  - Frozen regions larger than the viewport aren't clipped: the frozen rows or columns stay pinned and can cover the whole viewport, so the scrolling pane is out of sight until the viewer grows or zooms out (measured in Chromium) `[to verify in Excel: how it shows frozen panes larger than the window]`.
 - **Focus.**
   - Focus uses a roving `tabIndex`: the active cell has `tabIndex=0`, all others `-1`.
   - **The active cell is always rendered**, even when scrolled out of the window, so focus never lands on a removed node.
-  - `aria-activedescendant` is not used: screen-reader support for it inside grids is uneven `[to verify in XLV-3's screen-reader pass]`.
+  - `aria-activedescendant` is not used: screen-reader support for it inside grids is uneven, so the viewer doesn't depend on it. Real focus on the active cell works in every screen reader; the manual pass ([a11y-manual-check.md](a11y-manual-check.md)) checks it in each.
 
 ### 7.2 Virtualisation
 
 - **Window.** The visible window comes from the scroll offsets via `rowAt`/`colAt`, plus an overscan of 6 rows and 3 columns (`OVERSCAN`; with it the harness drops no frames, §9.1). It is recomputed on scroll in a `requestAnimationFrame`.
 - **Always rendered.** Frozen rows and columns, merge anchors whose area intersects the window, and the active cell are always rendered.
 - **Element reuse.** Row and cell elements are keyed by sheet position. React reconciles a scroll step as a shift, and style objects are reused (the render-model cache returns the same `RenderStyle`, and a second `WeakMap<RenderStyle, CSSProperties>` returns the same style object).
-- **Browser element-size cap.** Browsers cap element sizes (on the order of tens of millions of px, varying by engine `[to verify per browser]`). A full 1,048,576-row sheet at 20 px would exceed some engines. Phase 1 therefore renders the **used range plus a margin** (§12 Q4). If a later phase needs the full grid, it adds scaled scrolling.
+- **Browser element-size cap.** Browsers cap element sizes. Chromium clamps an element's height, and a scroll container's `scrollHeight`, at 33,554,428 px (measured in Chromium 150; a taller element reports that height) `[to verify in Firefox and Safari]`. A full 1,048,576-row sheet at 20 px is 20,971,520 px, under Chromium's cap at 100 % zoom but over it from 160 %. Phase 1 therefore renders the **used range plus a margin** (§12 Q4). If a later phase needs the full grid, it adds scaled scrolling.
 
 ### 7.3 Cell content
 
 - **Escaping.** Text is a React text node: never `innerHTML`, never `dangerouslySetInnerHTML`. Rich text renders as `<span>` runs with inline font styles.
 - **Styles.** Styles are inline style objects, applied by React through the CSSOM, which a strict `style-src 'self'` CSP doesn't block. The react-data-export playground already shows this: its preview colours cells this way under the same CSP with no violations (RDE-1.18).
-  - A constructable stylesheet with one class per distinct style is the alternative, if XLV-3 measures inline styles as too slow `[to verify: CSP treatment of constructable stylesheets]`.
+  - A constructable stylesheet with one class per distinct style was the alternative if inline styles were too slow. XLV-3 measured them as fast enough (§9.1), so it isn't used and its CSP treatment doesn't matter.
 - **Fills.**
   - Pattern fills use CSS gradients (no `url()`, so no `img-src` needs).
   - Gradient fills use `linear-gradient`/`radial-gradient`.
@@ -473,7 +473,7 @@ Decided by the plan: **DOM, not canvas**, for real accessibility. Canvas is eval
 | Feature | Phase 1 | Notes |
 |---|---|---|
 | Values: numbers, text, booleans, errors, rich text | Full | Errors as written, including `#SPILL!` |
-| Number formats | Full, via JSE-18 | Fallback to raw values until JSE-18 |
+| Number formats | Full, via JSE-18 (`javascript-excel/format`) | |
 | Font: family, size, bold, italic, colour, strike, super/subscript | Full | Family via the font map (ux.md §8.3) |
 | Underline single/double; accounting variants | Approximate | Accounting underline spans the cell width in Excel; shown as single/double under the text |
 | Solid fills; 18 pattern fills; gradient fills | Solid full; others approximate | Patterns as CSS gradients; visual check against LibreOffice (§11.3) |
@@ -636,7 +636,8 @@ Node is only for SSR (shell) and tests.
 Each question had a recommendation, and Afzal accepted all sixteen on 2026-11-16. The sections above state the outcome as the design. The numbering is kept stable so references such as "§12 Q4" stay valid.
 
 **Q1. Number-format renderer timing.** Viewer 1.0 needs `javascript-excel/format`, which the engine roadmap places in 3.x.
-- *Decided (2026-11-16):* add **JSE-18** and ship `/format` as a 2.x minor, before viewer 1.0 and independent of 2.1–2.5. It is self-contained (no file parts), and import previews and `autoWidth` benefit too.
+- *Decided (2026-11-16):* add **JSE-18** and ship `/format` before viewer 1.0. It is self-contained (no file parts), and import previews and `autoWidth` benefit too.
+- *Shipped:* in javascript-excel 2.0 (2.0.0-alpha.2), not a later 2.x minor.
 
 **Q2. Render model in the engine.**
 - *Decided (2026-11-16):* yes, as `javascript-excel/render` (XLV-2, built in the engine repo), as the plan's architecture note says. A Vue or canvas viewer reuses it, and it tests in Node. The React package keeps only DOM and interaction.
