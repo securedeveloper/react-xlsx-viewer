@@ -47,9 +47,9 @@ import {
   type RenderSheet,
   type SheetSettings,
 } from 'javascript-excel/render';
-import { fontStack } from './fonts';
+import { fontStack, numberMetrics } from './fonts';
 import type { ViewerLabels } from './labels';
-import { textWidth } from './measure';
+import { fileFontWidth, textWidth } from './measure';
 import { cellCount, colName, contains, extendTo, focusOf, rangeOf, single, type Selection } from './selection';
 
 const useIsoLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
@@ -260,12 +260,28 @@ const CellView = memo(function CellView(p: CellViewProps): ReactElement {
     }
     if (shrink < 1) textStyle.fontSize = (textStyle.fontSize as number) * shrink;
     if ((cell.type === 'number' || cell.type === 'date') && !a.wrap && !a.shrink && text) {
-      // Numbers that don't fit show as #### (Excel), when the text can be measured.
+      // Numbers that don't fit show as #### (Excel), when the text can be measured. The decision uses the
+      // file font's metrics (issue #16): where a wider fallback font is drawn (Calibri and Carlito not
+      // installed), a number that fits in the file's font is drawn slightly smaller instead of ####, and
+      // one that doesn't fit there shows #### even if the fallback is narrower.
       const avail = p.width - 6 * z;
       const w = textWidth(text, font);
-      if (w !== null && w > avail) {
-        const hash = textWidth('#', font) ?? 1;
-        text = '#'.repeat(Math.max(1, Math.floor(avail / hash)));
+      if (w !== null) {
+        const expected = fileFontWidth(text, numberMetrics(f.family, f.bold), fontSizePx, font) ?? w;
+        if (expected > avail) {
+          const hash = textWidth('#', font) ?? 1;
+          text = '#'.repeat(Math.max(1, Math.floor(avail / hash)));
+        } else if (w > avail && avail > 0) {
+          const at = (k: number): number | null => textWidth(text, `${f.italic ? 'italic ' : ''}${f.bold ? '700 ' : ''}${fontSizePx * k}px ${family}`);
+          let k = 1;
+          let kw: number | null = w;
+          for (let i = 0; i < 4 && kw !== null && kw > avail; i++) {
+            k = Math.floor(k * (avail / kw) * 100) / 100;
+            kw = at(k);
+          }
+          shrink = k;
+          textStyle.fontSize = (textStyle.fontSize as number) * k;
+        }
       }
     }
     if (a.horizontal === 'fill' && !a.wrap && text && !cell.runs) {

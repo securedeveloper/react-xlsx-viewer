@@ -265,4 +265,48 @@ describe('grid in Chromium', () => {
     expect(text(2).textContent).toBe('123,456,789,012,345');
     expect(parseFloat(getComputedStyle(text(2)).fontSize)).toBeLessThan(14);
   });
+  it('decides #### with the file font\'s metrics when a wider fallback is drawn (issue #16)', async () => {
+    // Calibri is drawn as the platform monospace (digits about 0.6 em, Calibri's are 0.507 em), as on a machine
+    // without Calibri or Carlito. 4,270.50 fits a width-8 column in Calibri bold 11 (about 52 of 55 px), as in
+    // the conformance corpus file 19-builders.xlsx.
+    const total = { numFmt: '#,##0.00', font: { name: 'Calibri', size: 11, bold: true } };
+    mount({
+      fonts: { calibri: 'monospace' },
+      source: {
+        sheets: [{
+          name: 'S',
+          rows: [[{ value: 4270.5, style: total }], [{ value: 123456789, style: total }], [{ value: 42, style: total }]],
+          colProps: [{ width: 8 }],
+        }],
+      },
+    });
+    await nextFrame();
+    const cell = (r: number): HTMLElement => document.querySelector<HTMLElement>(`[data-r="${r}"][data-c="0"]`)!;
+    const text = (r: number): HTMLElement => cell(r).querySelector<HTMLElement>('.xv-text')!;
+    // Fits in Calibri: shown in full, slightly smaller so it fits the fallback, not ####.
+    expect(text(0).textContent).toBe('4,270.50');
+    expect(parseFloat(getComputedStyle(text(0)).fontSize)).toBeLessThan(14.6);
+    expect(text(0).scrollWidth).toBeLessThanOrEqual(cell(0).clientWidth);
+    // Doesn't fit even in Calibri: #### as in Excel.
+    expect(text(1).textContent).toMatch(/^#+$/);
+    // Fits in both: unchanged.
+    expect(text(2).textContent).toBe('42.00');
+    expect(parseFloat(getComputedStyle(text(2)).fontSize)).toBeCloseTo(14.67, 1);
+  });
+
+  it('keeps the drawn width when the file font\'s metrics are unknown (issue #16)', async () => {
+    mount({
+      fonts: { 'some font': 'monospace' },
+      source: {
+        sheets: [{
+          name: 'S',
+          rows: [[{ value: 4270.5, style: { numFmt: '#,##0.00', font: { name: 'Some Font', size: 11, bold: true } } }]],
+          colProps: [{ width: 8 }],
+        }],
+      },
+    });
+    await nextFrame();
+    const text = document.querySelector<HTMLElement>('[data-r="0"][data-c="0"] .xv-text')!;
+    expect(text.textContent).toMatch(/^#+$/);
+  });
 });
