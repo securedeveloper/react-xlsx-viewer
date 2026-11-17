@@ -857,14 +857,16 @@ export const Grid: ForwardRefExoticComponent<GridProps & RefAttributes<GridHandl
         key="corner"
         role="columnheader"
         aria-colindex={1}
-        aria-label={labels.selectAll}
         className="xv-corner"
         style={{ width: headerW, minWidth: headerW, height: headerH, insetInlineStart: 0 }}
         onPointerDown={(e) => {
           e.preventDefault();
           selectHeader('all', 0, false);
         }}
-      />,
+      >
+        {/* Text content, not aria-label: a header needs a name that screen readers also find in browse mode (axe empty-table-header). */}
+        <span className="xv-visually-hidden">{labels.selectAll}</span>
+      </div>,
     );
     const pushHeaders = (cols: number[], sticky: boolean): void => {
       let x = sticky ? 0 : colLeft(rs, fc);

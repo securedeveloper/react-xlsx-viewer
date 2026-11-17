@@ -272,7 +272,8 @@ Run for each release (XLV-9 records the results). The automated parts run in CI.
   - text spacing overrides (WCAG 1.4.12) don't clip chrome labels.
 - **Forced colours** (Windows High Contrast): selection and focus stay visible.
 - **Reduced motion** is respected.
-- **Automated checks:** an axe audit in the browser tests and Lighthouse accessibility on the playground, both expected at zero violations / 100.
+- **Automated checks:** an axe audit in the browser tests (`test/browser/a11y.browser.test.tsx`, light and dark theme, zero violations required) and Lighthouse accessibility on the playground (expected 100).
+- **Manual checks:** the steps, expected announcements and pass criteria for each screen reader are in [a11y-manual-check.md](a11y-manual-check.md).
 
 ## 10. Small screens
 
