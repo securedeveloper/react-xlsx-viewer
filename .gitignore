@@ -27,6 +27,5 @@ perf-results.json
 
 # Vitest browser-mode output (failed screenshots, diffs, caches)
 .vitest/
-.vitest-attachments/
 # LibreOffice comparison output (scripts/libreoffice-compare.mjs)
 visual-comparison/

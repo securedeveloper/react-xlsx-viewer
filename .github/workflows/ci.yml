@@ -141,7 +141,7 @@ jobs:
         with:
           name: visual-diffs
           path: |
-            packages/react-xlsx-viewer/.vitest-attachments
+            packages/react-xlsx-viewer/.vitest/attachments
             packages/react-xlsx-viewer/test/visual/__screenshots__
           if-no-files-found: ignore
 
