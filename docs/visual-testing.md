@@ -18,6 +18,8 @@ The generated cases:
 | 2,000 shared strings over an app limit of 1,000 | `LIMIT_EXCEEDED`, `maxSharedStrings` |
 | 100,000 shared strings, default limits | Opens |
 | One 1,000,000-character string | Renders in its cell; the DOM stays bounded |
+| A merge over the whole sheet (A1:XFD1048576) plus 20,000 small merges | Opens; the rendered DOM stays bounded, also scrolled to the end |
+| 60,000 distinct cell formats | Opens; the rendered DOM stays bounded |
 | XML nested 200 deep | `LIMIT_EXCEEDED`, `maxXmlDepth` |
 | XXE and "billion laughs" DOCTYPEs | `XML_DTD_FORBIDDEN` |
 | Unterminated XML, CRC mismatch, encrypted entry, compression method 14, truncated zip | `XML_MALFORMED`, `ZIP_CRC_MISMATCH`, `ZIP_ENCRYPTED`, `ZIP_UNSUPPORTED_METHOD`, `ZIP_INVALID` ("damaged") |
