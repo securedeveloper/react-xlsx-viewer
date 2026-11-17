@@ -1,0 +1,126 @@
+{
+  "library": "javascript-excel",
+  "version": "2.0.0-alpha.7",
+  "files": [
+    {
+      "file": "01-values.xlsx",
+      "title": "Cell values",
+      "bytes": 5180,
+      "sha256": "b4771c8b961dc10a3ee078f760ca1d3c41b55aa70154aead9076ac7c56fb24f6"
+    },
+    {
+      "file": "02-text.xlsx",
+      "title": "Text edge cases and rich text",
+      "bytes": 4901,
+      "sha256": "6902744fe0a7c8dcdb0dce2fdbb72c5de21068bbc79eba82f1aef0c8b48c7cf6"
+    },
+    {
+      "file": "03-dates.xlsx",
+      "title": "Dates (1900 date system)",
+      "bytes": 4825,
+      "sha256": "577f13491b46851264511eec47d1734a7bb6ebbff602d030bff434301eba1e86"
+    },
+    {
+      "file": "04-dates-1904.xlsx",
+      "title": "Dates (1904 date system)",
+      "bytes": 4465,
+      "sha256": "374ba718ce6cb789b635f0e9a3b42cad5483d6146c968890ab269120a09f584e"
+    },
+    {
+      "file": "05-formulas.xlsx",
+      "title": "Formulas and cached values",
+      "bytes": 4667,
+      "sha256": "1b0e034895f068b29493dfe651b4aa3b076921b14b72415c9b8de65f6aa02e8b"
+    },
+    {
+      "file": "06-fonts.xlsx",
+      "title": "Fonts",
+      "bytes": 5217,
+      "sha256": "698285c65713243240cac9e95ead456e438ceac8fd9449e977bd279fb751e35a"
+    },
+    {
+      "file": "07-fills.xlsx",
+      "title": "Fills",
+      "bytes": 5301,
+      "sha256": "5b0d6caf64d4fbd8e1fce3e1cba1b10d6472e86dc45b733a9e52491355963baa"
+    },
+    {
+      "file": "08-borders.xlsx",
+      "title": "Borders",
+      "bytes": 5166,
+      "sha256": "b4327b1b79bdf0b1f74f111e23d9620560d964d57a096bc90d8ea58290a1557d"
+    },
+    {
+      "file": "09-alignment.xlsx",
+      "title": "Alignment and protection",
+      "bytes": 5482,
+      "sha256": "a2e966d22274589c417adc7582b286e770e97815512cefe50dff2943e83b8d7f"
+    },
+    {
+      "file": "10-number-formats.xlsx",
+      "title": "Built-in and custom number formats",
+      "bytes": 7652,
+      "sha256": "7980233df0728310430953f6aaf60056d24d099b91bc3b7be2f98b137f368056"
+    },
+    {
+      "file": "11-number-formats-locale.xlsx",
+      "title": "Locale-dependent built-in number formats",
+      "bytes": 4962,
+      "sha256": "59aa68b02a0de5a5444b5aa0b53da169ee61877e782c51f81d6860f74ed204af"
+    },
+    {
+      "file": "12-colours.xlsx",
+      "title": "Colours: theme order, tints, indexed palette",
+      "bytes": 7997,
+      "sha256": "7a5db54efb42ddabf17a028cb74ed2ea2c9c7564ad9ff0864f1050f733362e22"
+    },
+    {
+      "file": "13-columns-rows.xlsx",
+      "title": "Column widths, row heights, hidden and outline",
+      "bytes": 4611,
+      "sha256": "4db558041f506e3f00f88b36d16fda10aa1baedad30d2e28c6ca81a50df057aa"
+    },
+    {
+      "file": "14-merges-views.xlsx",
+      "title": "Merges, freeze panes, views and tab colours",
+      "bytes": 9260,
+      "sha256": "7242e12837b0a33d514226b10a87fb9d75c16be4dab0a5497c456c59b6b3f552"
+    },
+    {
+      "file": "15-hyperlinks-names.xlsx",
+      "title": "Hyperlinks and defined names",
+      "bytes": 5683,
+      "sha256": "34376bbcc0cd2851381f0f523a7ac807ca9daab529dbe379b444e2704d2294d7"
+    },
+    {
+      "file": "16-print.xlsx",
+      "title": "Print setup",
+      "bytes": 9927,
+      "sha256": "6d0273b2596792f87af49526e211584b8aac49a7d95107d1f8f8818a351812dd"
+    },
+    {
+      "file": "17-workbook.xlsx",
+      "title": "Workbook properties, default font and sheet names",
+      "bytes": 6125,
+      "sha256": "a92b1e0f8d1714c94892d675185ee6a028e3321aa23a6fb82303603b261e49d6"
+    },
+    {
+      "file": "18-limits.xlsx",
+      "title": "Format limits",
+      "bytes": 1062742,
+      "sha256": "4523d31e40f03b76ec53f79704f59b1598cf8aebc6cc44fa0f00ea05a9770f9b"
+    },
+    {
+      "file": "19-builders.xlsx",
+      "title": "Dataset builders (fromDataset, fromDatasets)",
+      "bytes": 6670,
+      "sha256": "67043befa6dabdf077978534672cf909eddb00af0e9790ed6a08167d678a4aaf"
+    },
+    {
+      "file": "99-kitchen-sink.xlsx",
+      "title": "Kitchen sink",
+      "bytes": 42665,
+      "sha256": "2afe83bc0ed7bd531c206d1005624b38ab5704fb843bfee0683906debad942d0"
+    }
+  ]
+}
