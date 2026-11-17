@@ -19,6 +19,8 @@ Watch the repository for 1.0.0.
 - **The viewer exists** (XLV-3): `<XlsxViewer>` and `useWorkbook`, on javascript-excel 2.0.0-alpha.3 (`/read`, `/format`, `/render`). It is tested on React 18 and 19 in jsdom and Chromium, and has a performance harness (`npm run perf -w react-xlsx-viewer`). Styles, merges, panes and tabs work; XLV-4 onwards refines them.
 - **1.0.0-alpha.2 is the current prerelease** (`npm install react-xlsx-viewer@next`): the phase-1 read-only viewer. `latest` stays the 0.0.1 name reservation until 1.0.0.
 
+**Using it:** the [user guide](docs/guide.md) (with the keyboard reference) and the [package README](packages/react-xlsx-viewer/README.md). Playground: https://react-xlsx-viewer-playground.vercel.app/
+
 ## Repository layout
 
 ```
@@ -26,7 +28,7 @@ packages/react-xlsx-viewer/   the published library (TypeScript, ESM + CJS + .d.
 apps/playground/              Vite + React 19 dev sandbox with a strict CSP, tested in CI (the public
                               playground is securedeveloper/react-xlsx-viewer-playground)
 scripts/                      tarball smoke test, consumer TypeScript matrix, release helpers
-docs/                         the 1.0 API and UX design
+docs/                         user guide (guide.md), the 1.0 API and UX design, test docs
 ```
 
 ## Development

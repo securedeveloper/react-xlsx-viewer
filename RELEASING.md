@@ -37,16 +37,16 @@ Open the pull request. Its **Release dry run** CI job shows what merging would d
 
 ## 3. Prereleases (pre mode)
 
-The first real versions can go out as prereleases on the `next` dist-tag, so `npm install react-xlsx-viewer` keeps getting 0.0.1 (`latest`, the name reservation) until a final version is published.
+Prereleases go out on the `next` dist-tag, so `npm install react-xlsx-viewer` keeps getting 0.0.1 (`latest`, the name reservation) until 1.0.0 is published. The repository is in pre mode now (`.changeset/pre.json`, tag `alpha`).
 
 ```sh
 npx changeset pre enter alpha     # or beta / rc; commit .changeset/pre.json
-npm run version-packages          # e.g. 0.1.0-alpha.0, 0.1.0-alpha.1, ...
-npx changeset pre exit            # when the final version is next
-npm run version-packages          # e.g. 0.1.0
+npm run version-packages          # e.g. 1.0.0-alpha.2, 1.0.0-alpha.3, ...
+npx changeset pre exit            # then `pre enter beta` for 1.0.0-beta.0, or exit for the final version
+npm run version-packages          # e.g. 1.0.0
 ```
 
-Any version with a prerelease part (`-alpha.1`, `-beta.0`, ...) is published with `--tag next` and marked as a prerelease on GitHub. A plain version (`0.1.0`) goes to `latest`.
+Any version with a prerelease part (`-alpha.3`, `-beta.0`, ...) is published with `--tag next` and marked as a prerelease on GitHub. A plain version (`1.0.0`) goes to `latest`.
 
 ## 4. What happens on merge
 
@@ -55,11 +55,11 @@ On every push to `main`, the `Release` job (environment `npm`, `main` only) runs
 1. the package version differs from the previous commit (`HEAD~1`), and
 2. `react-xlsx-viewer@<version>` is not on npm yet.
 
-Otherwise it stops with "no release" in the job summary. That covers docs and feature merges, re-runs after a successful publish, and the current `0.0.1` (already on npm, and the version hasn't changed).
+Otherwise it stops with "no release" in the job summary. That covers docs and feature merges, and re-runs after a successful publish.
 
 For a release, the job then:
-1. runs `npm ci`, sets up openpyxl (part of the shared `release.yml`; this package's tests don't need it, but the step is kept so the file stays identical across the four repositories), then `npm run typecheck`, `npm test` and `npm run build` when those scripts exist (none do yet),
-2. runs `npm publish . --tag next|latest`,
+1. runs `npm ci`, sets up openpyxl (part of the shared `release.yml`; this package's tests don't need it, but the step is kept so the file stays identical across the four repositories), then `npm run typecheck`, `npm test` and `npm run build` (each with `--if-present`; all three exist here),
+2. runs `npm publish ./packages/react-xlsx-viewer --tag next|latest` (`npm publish "./$PACKAGE_DIR"` in `release.yml`: the package directory, not the private workspace root),
 3. runs `gh release create v<version>`, which creates the tag on the merge commit. The notes are that version's section of `CHANGELOG.md`.
 
 The job also checks that npm is at least 11.5.1, which trusted publishing requires. Node 26 ships a newer npm (11.x).
