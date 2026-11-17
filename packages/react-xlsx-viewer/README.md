@@ -37,6 +37,8 @@ export function Preview({ file }: { file: File }) {
 - **Read-only:** formulas show the results stored in the file, and nothing is calculated or run. Links open only for `http`, `https` and `mailto`, and only after the real address has been shown.
 - **Strict CSP:** it works under `style-src 'self'` and `script-src 'self'`. Styles come from the imported stylesheet and the CSSOM; there is nothing inline in HTML.
 
+**Try it** in the live playground: https://react-xlsx-viewer-playground.vercel.app/ (open the sample or your own file; nothing is uploaded).
+
 The design is in [docs/api.md](https://github.com/securedeveloper/react-xlsx-viewer/blob/main/docs/api.md) and [docs/ux.md](https://github.com/securedeveloper/react-xlsx-viewer/blob/main/docs/ux.md).
 
 ## License
