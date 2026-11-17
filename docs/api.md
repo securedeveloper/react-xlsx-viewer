@@ -487,6 +487,7 @@ Decided by the plan: **DOM, not canvas**, for real accessibility. Canvas is eval
 | Merged cells | Full | |
 | Column widths, row heights, defaults | Full | Wrapped rows without a stored height: auto-fit by measurement (§12 Q11) |
 | Hidden rows/columns | Full | Not rendered, skipped by navigation, marked in the headers (ux.md §2) |
+| Autofilter range | Buttons shown, read-only | Dropdown buttons in the range's header row (ux.md §2); filtering is phase 2, and filter criteria aren't modelled by the engine |
 | Outline levels (grouping) | Shown as hidden/visible only | Expand/collapse buttons are phase 2 |
 | Frozen panes | Full | Split (non-frozen) panes are ignored by the reader with a warning |
 | Right-to-left sheets | Full | |

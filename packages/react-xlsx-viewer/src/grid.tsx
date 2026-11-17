@@ -74,6 +74,8 @@ export interface GridProps {
   showHeaders: boolean;
   labels: ViewerLabels;
   fonts?: Readonly<Record<string, string>> | undefined;
+  /** The sheet's autofilter range: its first row shows (read-only) filter buttons. */
+  autoFilter?: RangeRef | undefined;
   idBase: string;
   /** Describes the active cell for screen readers (formula, link), rendered off screen. */
   activeDescription: string;
@@ -189,6 +191,9 @@ interface CellViewProps {
   fonts: Readonly<Record<string, string>> | undefined;
   id: string;
   describedBy: string | undefined;
+  /** Autofilter buttons in this cell: each at the bottom-right corner of a header cell, as offsets in px from the cell's start and top. */
+  filters: ReadonlyArray<{ x: number; y: number }> | undefined;
+  filterLabel: string;
 }
 
 const CellView = memo(function CellView(p: CellViewProps): ReactElement {
@@ -361,6 +366,26 @@ const CellView = memo(function CellView(p: CellViewProps): ReactElement {
           {content}
         </span>
       ) : null}
+      {p.filters?.map((b, i) => {
+        // Excel's dropdown is about a row high; smaller in short rows.
+        const size = Math.min(16 * z, b.y);
+        return (
+          // Read-only: a disabled button with an accessible name; clicks go through to the cell (pointer-events: none).
+          <button
+            key={i}
+            type="button"
+            className="xv-filter"
+            disabled
+            tabIndex={-1}
+            aria-label={p.filterLabel}
+            style={{ insetInlineStart: b.x - size, top: b.y - size, width: size, height: size }}
+          >
+            <svg viewBox="0 0 10 10" aria-hidden="true" focusable="false">
+              <path d="M1.5 3h7L5 7.5z" fill="currentColor" />
+            </svg>
+          </button>
+        );
+      })}
     </div>
   );
 });
@@ -705,6 +730,21 @@ export const Grid: ForwardRefExoticComponent<GridProps & RefAttributes<GridHandl
     hadFocus.current = true;
   };
 
+  // Autofilter buttons (issue #19): one per visible column of the filter range, at the bottom-right of its header
+  // cell (the range's first row). A header cell inside a merge gets its button where that cell would be.
+  const autoFilter = props.autoFilter;
+  const filtersAt = (r: number, c: number, rows: number, cols: number): Array<{ x: number; y: number }> | undefined => {
+    if (!autoFilter) return undefined;
+    const hr = autoFilter.start.row;
+    if (hr < r || hr >= r + rows || isRowHidden(rs, hr)) return undefined;
+    const out: Array<{ x: number; y: number }> = [];
+    for (let cc = Math.max(c, autoFilter.start.col); cc <= Math.min(c + cols - 1, autoFilter.end.col); cc++) {
+      if (isColHidden(rs, cc)) continue;
+      out.push({ x: (colLeft(rs, cc) + colWidth(rs, cc) - colLeft(rs, c)) * z, y: (rowTop(rs, hr) + rowHeight(rs, hr) - rowTop(rs, r)) * z });
+    }
+    return out.length ? out : undefined;
+  };
+
   // Row content: [row header][frozen cells][spacer][window cells...].
   const renderRowCells = (r: number): ReactNode[] => {
     const out: ReactNode[] = [];
@@ -742,6 +782,7 @@ export const Grid: ForwardRefExoticComponent<GridProps & RefAttributes<GridHandl
         }
         const isActive = selection.active.row === r && selection.active.col === c;
         const span = cell?.merge;
+        const filters = filtersAt(r, c, span?.rows ?? 1, span?.cols ?? 1);
         out.push(
           <CellView
             key={c}
@@ -762,6 +803,8 @@ export const Grid: ForwardRefExoticComponent<GridProps & RefAttributes<GridHandl
             fonts={props.fonts}
             id={`${idBase}-${r}-${c}`}
             describedBy={isActive && props.activeDescription ? `${idBase}-desc` : undefined}
+            filters={filters}
+            filterLabel={labels.filterButton}
           />,
         );
         x = left + w;
@@ -794,7 +837,7 @@ export const Grid: ForwardRefExoticComponent<GridProps & RefAttributes<GridHandl
   };
 
   // What a row's rendering depends on besides its index: the shared context, its columns and its part of the selection.
-  const ctx = useMemo(() => ({}), [rs, geometry, z, fc, headerW, props.showGridLines, props.fonts, idBase, labels, props.activeDescription, multi, rtl, showHeaders]);
+  const ctx = useMemo(() => ({}), [rs, geometry, z, fc, headerW, props.showGridLines, props.fonts, autoFilter, idBase, labels, props.activeDescription, multi, rtl, showHeaders]);
   const colsKey = win.cols.join(',');
   const selKey = (r: number): string => {
     let k = '';

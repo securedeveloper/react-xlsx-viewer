@@ -229,3 +229,27 @@ describe('fonts', () => {
     expect(fileFontWidth('4,270.50', numberMetrics('Calibri', true), 14.67, '700 14.67px monospace')).toBeNull();
   });
 });
+
+describe('autofilter buttons (issue #19)', () => {
+  const filtered = (autoFilter?: string): Workbook<CellInput> => ({
+    sheets: [{ name: 'F', rows: [[{ value: 'a' }, { value: 'b' }, { value: 'c' }], [1, 2, 3]], autoFilter, colProps: [undefined, { hidden: true }] }],
+  });
+
+  it('shows a disabled, named button in each visible header cell of the range', () => {
+    render(<XlsxViewer source={filtered('A1:C2')} locale="en-US" />);
+    const buttons = screen.getAllByRole('button', { name: DEFAULT_LABELS.filterButton });
+    expect(buttons).toHaveLength(2); // B is hidden
+    expect(buttons.every((b) => (b as HTMLButtonElement).disabled)).toBe(true);
+    expect(cell(0, 0).querySelector('.xv-filter')).not.toBeNull();
+    expect(cell(0, 2).querySelector('.xv-filter')).not.toBeNull();
+    expect(cell(1, 0).querySelector('.xv-filter')).toBeNull();
+  });
+
+  it('shows none without an autofilter, and takes a translated label', () => {
+    const { unmount } = render(<XlsxViewer source={filtered()} locale="en-US" />);
+    expect(document.querySelector('.xv-filter')).toBeNull();
+    unmount();
+    render(<XlsxViewer source={filtered('$A$1:$C$2')} locale="en-US" labels={{ filterButton: 'Filtre' }} />);
+    expect(screen.getAllByRole('button', { name: 'Filtre' })).toHaveLength(2);
+  });
+});
