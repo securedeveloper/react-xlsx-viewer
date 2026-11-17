@@ -309,4 +309,45 @@ describe('grid in Chromium', () => {
     const text = document.querySelector<HTMLElement>('[data-r="0"][data-c="0"] .xv-text')!;
     expect(text.textContent).toMatch(/^#+$/);
   });
+
+  it('draws read-only autofilter buttons at the bottom-right of the filter range\'s header cells (issue #19)', async () => {
+    // Like the conformance corpus file 19-builders.xlsx: a two-row header where A1:A2 is merged, filter on row 2.
+    mount({
+      source: {
+        sheets: [{
+          name: 'S',
+          rows: [
+            [{ value: 'Name' }, { value: 'Sales' }, undefined],
+            [undefined, { value: 'Q1' }, { value: 'Q2' }],
+            [{ value: 'Ada' }, { value: 1 }, { value: 2 }],
+            [{ value: 'Total' }, { value: 1 }, { value: 2 }],
+          ],
+          merges: ['A1:A2', 'B1:C1'],
+          autoFilter: 'A2:C3',
+        }],
+      },
+    });
+    await nextFrame();
+    const buttons = [...document.querySelectorAll<HTMLButtonElement>('.xv-filter')];
+    expect(buttons).toHaveLength(3);
+    for (const b of buttons) {
+      expect(b.disabled).toBe(true);
+      expect(b.getAttribute('aria-label')).toBe(DEFAULT_LABELS.filterButton);
+    }
+    // Each sits in the bottom-right corner of its column's cell in row 2 (the merged A1:A2 included).
+    const cellBox = (r: number, c: number): DOMRect => document.querySelector<HTMLElement>(`[data-r="${r}"][data-c="${c}"]`)!.getBoundingClientRect();
+    const a = cellBox(0, 0);
+    const [ba, bb, bc] = buttons.map((b) => b.getBoundingClientRect());
+    expect(ba!.right).toBeCloseTo(a.right, 0);
+    expect(ba!.bottom).toBeCloseTo(a.bottom, 0);
+    expect(bb!.right).toBeCloseTo(cellBox(1, 1).right, 0);
+    expect(bb!.bottom).toBeCloseTo(cellBox(1, 1).bottom, 0);
+    expect(bc!.right).toBeCloseTo(cellBox(1, 2).right, 0);
+    // Not on the totals row or the data rows.
+    expect(document.querySelector('[data-r="2"] .xv-filter, [data-r="3"] .xv-filter')).toBeNull();
+    // Clicking a button selects its cell, as a click anywhere else in the cell does.
+    const at = { clientX: bc!.left + bc!.width / 2, clientY: bc!.top + bc!.height / 2 };
+    const target = document.elementFromPoint(at.clientX, at.clientY)!;
+    expect(target.closest('[data-r]')?.getAttribute('data-c')).toBe('2');
+  });
 });

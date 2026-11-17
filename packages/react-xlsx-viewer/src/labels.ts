@@ -44,6 +44,8 @@ export interface ViewerLabels {
   rowsHidden: (from: number, to: number) => string;
   colsHidden: (from: string, to: string) => string;
   findHint: string;
+  /** The autofilter dropdown in a filter range's header cells: shown, but not usable in this read-only viewer. */
+  filterButton: string;
   errors: {
     xls: string;
     xlsb: string;
@@ -98,6 +100,7 @@ export const DEFAULT_LABELS: Readonly<ViewerLabels> = Object.freeze({
   rowsHidden: (from: number, to: number) => (from === to ? `Row ${from} hidden` : `Rows ${from}–${to} hidden`),
   colsHidden: (from: string, to: string) => (from === to ? `Column ${from} hidden` : `Columns ${from}–${to} hidden`),
   findHint: "Search in the sheet comes in a later version; the browser's find only sees the visible part.",
+  filterButton: 'Filter (not available in this viewer)',
   errors: {
     xls: "This file is an older binary workbook (.xls) or a password-protected file. These can't be opened yet.",
     xlsb: "Binary workbooks (.xlsb) can't be opened yet. Save it as .xlsx and try again.",

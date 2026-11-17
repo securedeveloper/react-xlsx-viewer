@@ -22,6 +22,9 @@
   --xv-selection-line: #4f4fb3;
   --xv-focus: #4f4fb3;
   --xv-error: #b3261e;
+  --xv-filter-bg: #ffffff;
+  --xv-filter-fg: #44444d;
+  --xv-filter-border: #a6a6ad;
   display: flex;
   flex-direction: column;
   min-height: 240px;
@@ -133,6 +136,24 @@
 .xv-cell.xv-active { outline: 2px solid var(--xv-selection-line); outline-offset: -2px; z-index: 3; }
 .xv-cell.xv-nocache::before { content: ''; position: absolute; top: 0; right: 0; border-style: solid; border-width: 0 6px 6px 0; border-color: transparent var(--xv-muted) transparent transparent; }
 .xv-spacer { flex: none; }
+/* Autofilter dropdowns (issue #19): drawn at the bottom-right of each header cell of the filter range, read-only. */
+.xv-filter {
+  position: absolute;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--xv-filter-border);
+  border-radius: 2px;
+  background: var(--xv-filter-bg);
+  color: var(--xv-filter-fg);
+  font: inherit;
+  opacity: 1;
+  pointer-events: none;
+}
+.xv-filter svg { width: 60%; height: 60%; }
 .xv-rowheader,
 .xv-colheader,
 .xv-corner {

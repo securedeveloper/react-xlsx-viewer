@@ -53,6 +53,7 @@ The viewer follows familiar spreadsheet conventions: a grid with lettered column
   - The active cell has no tint, so its content stays readable.
   - Multiple ranges (Ctrl/Cmd+click) each get an outline.
   - In forced-colours mode (Windows High Contrast), the outline uses the system `Highlight` colour.
+- **Autofilter buttons** (issue #19). A sheet with an autofilter range shows a dropdown button at the bottom-right of each visible header cell of the range (its first row), as Excel does, including header cells inside a merge. They are read-only: disabled buttons named "Filter (not available in this viewer)" (`labels.filterButton`), out of the tab order, and a click on one selects its cell. Filtering itself belongs to the phase 2 sort/filter views; filter criteria from the file aren't modelled by javascript-excel, so a button can't show whether a filter is active.
 - **Empty margin.** After the used range, the grid continues for a margin (api.md §12 Q4) and then ends with a plain edge.
 - **Formula without a cached value.** The cell is empty with a small corner marker. Its tooltip and the formula bar say: "Not calculated: this file has no stored result for this formula, and the viewer doesn't calculate formulas."
 - **Disallowed hyperlink** (for example `javascript:`). The cell shows its text, unstyled as a link. Selecting it shows "Link not opened: unsupported address" in the link chip.

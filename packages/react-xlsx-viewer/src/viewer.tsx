@@ -14,7 +14,7 @@ import {
   type ReactElement,
   type RefAttributes,
 } from 'react';
-import { decodeCell, isDateFormat, type Cell, type CellInput, type ExcelWarning, type Workbook } from 'javascript-excel';
+import { decodeCell, decodeRange, isDateFormat, type Cell, type CellInput, type ExcelWarning, type Workbook } from 'javascript-excel';
 import { formatCell, formatValue } from 'javascript-excel/format';
 import {
   createRenderSheet,
@@ -317,6 +317,18 @@ export const XlsxViewer: ForwardRefExoticComponent<XlsxViewerProps & RefAttribut
       [sheets, sheetIndex, changeSheet],
     );
 
+    // The sheet's autofilter range (issue #19), for its read-only header buttons.
+    const autoFilterRef = wb?.sheets[sheetIndex]?.autoFilter;
+    const autoFilter = useMemo(() => {
+      if (!autoFilterRef) return undefined;
+      try {
+        const ref = autoFilterRef.replace(/\$/g, '');
+        return ref.includes(':') ? decodeRange(ref) : { start: decodeCell(ref), end: decodeCell(ref) };
+      } catch {
+        return undefined;
+      }
+    }, [autoFilterRef]);
+
     // The active cell, its model cell and its render cell.
     const activeModel = wb && rs ? wb.sheets[sheetIndex]?.rows[selection.active.row]?.[selection.active.col] : undefined;
     const activeCell = rs ? renderCell(rs, selection.active.row, selection.active.col) : null;
@@ -499,6 +511,7 @@ export const XlsxViewer: ForwardRefExoticComponent<XlsxViewerProps & RefAttribut
           showHeaders={props.showHeaders ?? settings.showHeaders}
           labels={labels}
           fonts={props.fonts}
+          autoFilter={autoFilter}
           idBase={`${idBase}-${rs.sheet}`}
           activeDescription={description}
           onSheetStep={sheetStep}
