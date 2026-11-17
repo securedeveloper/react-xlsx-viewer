@@ -1,4 +1,4 @@
-/* Styles live in this file, not in style attributes: the CSP (vercel.json) is style-src 'self'. */
+/* Styles live in this file, not in style attributes: the CSP (vite.config.ts) is style-src 'self'. */
 :root {
   color-scheme: light dark;
   --fg: #1d1d1f;

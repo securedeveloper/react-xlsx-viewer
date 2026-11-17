@@ -23,7 +23,8 @@ Watch the repository for 1.0.0.
 
 ```
 packages/react-xlsx-viewer/   the published library (TypeScript, ESM + CJS + .d.ts, "use client")
-apps/playground/              Vite + React 19 demo with a strict CSP: a sample workbook or your own file
+apps/playground/              Vite + React 19 dev sandbox with a strict CSP, tested in CI (the public
+                              playground is securedeveloper/react-xlsx-viewer-playground)
 scripts/                      tarball smoke test, consumer TypeScript matrix, release helpers
 docs/                         the 1.0 API and UX design
 ```
