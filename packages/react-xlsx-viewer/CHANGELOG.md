@@ -1,5 +1,24 @@
 # react-xlsx-viewer
 
+## 1.0.0-beta.0
+
+The first beta. Phase 1, the read-only viewer, is feature-complete for 1.0, and from here until 1.0.0 only fixes go in. It runs on javascript-excel 2.0.0-beta.1 and has:
+- an axe audit at 0 violations in light and dark themes;
+- an automated pre-pass over Chromium's accessibility tree;
+- real-file, hostile-file and visual-regression tests;
+- a Performance budget that gates CI.
+
+The manual screen-reader passes are still open: NVDA, VoiceOver on macOS and iOS, TalkBack, and JAWS before 1.0 (`docs/a11y-manual-check.md`).
+
+### Patch Changes
+
+- c5d466b: Screen-reader fixes found by an automated pass over Chromium's accessibility tree:
+  - Grid cells are exposed as read-only. Chromium doesn't pass the grid's `aria-readonly` down to its cells, so each cell now says it too.
+  - An internal link names its sheet: "Link to Second sheet, A1" in the cell's description, and "Go to Second sheet, A1" in the link chip.
+  - A link that won't open (a `javascript:` address, for example) is described as "Link not opened: unsupported address", as in the chip, instead of "Link to javascript:…".
+- b34c1a0: Accessibility fixes found by an axe audit: the corner header ("Select all cells") now has its name as visually hidden text instead of `aria-label`, so screen readers in browse mode find it too; and the loading, error and empty states sit on the chrome background, so their text keeps its contrast in the dark theme.
+- 44dde94: Depends on javascript-excel `^2.0.0-beta.1` (was `^2.0.0-alpha.5`).
+
 ## 1.0.0-alpha.2
 
 ### Patch Changes
