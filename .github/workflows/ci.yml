@@ -97,11 +97,19 @@ jobs:
         run: test "${{ needs.test.result }}" = success
 
   # The package in a real browser (test/browser, Vitest browser mode + Playwright
-  # Chromium): layout, focus and scrolling, which jsdom does not have. Not a
-  # required check yet.
+  # Chromium): layout, focus and scrolling, which jsdom does not have; the conformance
+  # corpus and the generated hostile files; then visual regression (test/visual)
+  # against the committed baselines. Not a required check yet.
+  #
+  # It runs in a pinned Playwright image, so the OS, system libraries and fonts are the
+  # same on every run and the screenshots stay comparable. scripts/visual.sh runs the
+  # same image locally; keep the two image tags in step (docs/visual-testing.md).
   browser:
     name: Browser
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.1-noble
+      options: --ipc=host
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -109,17 +117,62 @@ jobs:
           node-version: 26
           cache: npm
       - run: npm ci
-      - name: Playwright version
-        id: pw
-        run: echo "version=$(npm -w react-xlsx-viewer exec -- playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}-chromium-headless-shell
-      - name: Install Chromium (headless shell) and its system libraries
-        run: npm -w react-xlsx-viewer exec -- playwright install --with-deps --only-shell chromium
+      # Metric-compatible fonts for Calibri and Cambria (the font map, docs/ux.md §8.3); the
+      # image already has Liberation (Arial, Times New Roman, Courier New).
+      - name: Fonts
+        run: |
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends fonts-crosextra-carlito fonts-crosextra-caladea
+          fc-list : family | grep -E 'Carlito|Caladea|Liberation Sans' | sort -u
+      - name: Chromium (headless shell)
+        run: |
+          v=$(npm -w react-xlsx-viewer exec -- playwright --version | awk '{print $2}')
+          if [ "$v" != "1.65.1" ]; then
+            echo "::warning::Playwright $v differs from the container image (1.65.1): bump the image tag here and in scripts/visual.sh, and refresh the visual baselines."
+          fi
+          npm -w react-xlsx-viewer exec -- playwright install --only-shell chromium
       - name: Browser tests
         run: npm run test:browser
+      - name: Visual regression
+        id: visual
+        run: npm run test:visual
+      # On a mismatch: render the would-be baselines too, and upload them with Vitest's
+      # diff images, for review or to commit (docs/visual-testing.md).
+      - name: Render new baselines (after a mismatch)
+        if: failure() && steps.visual.outcome == 'failure'
+        run: npm run -w react-xlsx-viewer test:visual:update || true
+      - uses: actions/upload-artifact@v7
+        if: failure() && steps.visual.outcome == 'failure'
+        with:
+          name: visual-diffs
+          path: |
+            packages/react-xlsx-viewer/.vitest/attachments
+            packages/react-xlsx-viewer/test/visual/__screenshots__
+          if-no-files-found: ignore
+
+  # The conformance corpus in LibreOffice next to the viewer's baselines
+  # (scripts/libreoffice-compare.mjs). Reported as an artifact, not gating: it measures
+  # fidelity, and LibreOffice isn't Excel.
+  libreoffice:
+    name: LibreOffice comparison
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+      - name: Install LibreOffice Calc (headless) and poppler
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends libreoffice-calc-nogui poppler-utils fonts-crosextra-carlito fonts-crosextra-caladea
+          soffice --version
+      - name: Render the corpus
+        run: node scripts/libreoffice-compare.mjs
+      - uses: actions/upload-artifact@v7
+        with:
+          name: visual-comparison
+          path: visual-comparison
+          retention-days: 14
 
   # The Performance harness (packages/react-xlsx-viewer/test/perf, docs/api.md §9) in
   # Chromium: scroll frames, keyboard and click response, DOM size, copy and summary

@@ -15,6 +15,8 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm test -w react-xlsx-viewer",
     "test:browser": "npm run test:browser -w react-xlsx-viewer",
+    "test:visual": "npm run test:visual -w react-xlsx-viewer",
+    "visual:docker": "sh scripts/visual.sh",
     "lint:pkg": "npm run lint:pkg -w react-xlsx-viewer",
     "smoke": "node scripts/smoke.mjs",
     "consumer-ts": "node scripts/consumer-ts.mjs",
