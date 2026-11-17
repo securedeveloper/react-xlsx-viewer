@@ -97,7 +97,8 @@
 /* Notices and states */
 .xv-notice { display: flex; gap: 1rem; align-items: flex-start; justify-content: space-between; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--xv-border); background: var(--xv-header-bg); }
 .xv-notice ul { margin: 0.25rem 0 0; padding-left: 1.25rem; }
-.xv-body-area { flex: 1; min-height: 0; display: flex; position: relative; background: var(--xv-sheet-bg); }
+/* Chrome colours: the loading, error and empty states sit on them. The grid's scroll area paints the sheet colour itself. */
+.xv-body-area { flex: 1; min-height: 0; display: flex; position: relative; background: var(--xv-chrome-bg); }
 .xv-state { margin: auto; text-align: center; padding: 1rem; max-width: 32rem; color: var(--xv-chrome-fg); }
 .xv-muted { color: var(--xv-muted); }
 .xv-error { color: var(--xv-error); font-weight: 600; }
