@@ -140,6 +140,13 @@ function enteredValue(model: CellInput, locale: string): string {
   return String(v);
 }
 
+/** An internal link's target as people read it: "Second sheet, A1" (the sheet's name, then the cell or name). */
+function internalTarget(link: RenderHyperlink, wb: Workbook<CellInput> | null): string {
+  if (link.kind !== 'internal') return '';
+  const name = link.sheet === null ? undefined : wb?.sheets[link.sheet]?.name;
+  return name ? `${name}, ${link.ref}` : link.ref;
+}
+
 function hostOf(href: string): string {
   try {
     return new URL(href).host || href;
@@ -452,7 +459,7 @@ export const XlsxViewer: ForwardRefExoticComponent<XlsxViewerProps & RefAttribut
     const description = [
       activeCell?.formula ? `${labels.formula}: ${activeCell.formula}` : '',
       activeCell?.noCachedValue ? labels.notCalculated : '',
-      link ? labels.linkTo(link.kind === 'external' ? hostOf(link.href) : link.ref) : '',
+      link ? (link.kind === 'external' ? (link.allowed ? labels.linkTo(hostOf(link.href)) : labels.linkBlocked) : link.sheet === null ? labels.linkBlocked : labels.linkTo(internalTarget(link, wb))) : '',
     ]
       .filter(Boolean)
       .join('. ');
@@ -532,7 +539,7 @@ export const XlsxViewer: ForwardRefExoticComponent<XlsxViewerProps & RefAttribut
           }}
           overlay={(g) =>
             link ? (
-              <LinkChip link={link} labels={labels} geometry={g} onOpen={openLink} onClose={() => grid.current?.focusActive()} />
+              <LinkChip link={link} target={link.kind === 'internal' ? internalTarget(link, wb) : ''} labels={labels} geometry={g} onOpen={openLink} onClose={() => grid.current?.focusActive()} />
             ) : null
           }
         />
@@ -651,7 +658,7 @@ function Notices(p: { warnings: ExcelWarning[]; labels: ViewerLabels; onDismiss:
   );
 }
 
-function LinkChip(p: { link: RenderHyperlink; labels: ViewerLabels; geometry: { x: number; y: number; width: number; height: number }; onOpen: () => void; onClose: () => void }): ReactElement {
+function LinkChip(p: { link: RenderHyperlink; target: string; labels: ViewerLabels; geometry: { x: number; y: number; width: number; height: number }; onOpen: () => void; onClose: () => void }): ReactElement {
   const style: CSSProperties = { insetInlineStart: p.geometry.x, top: p.geometry.y + p.geometry.height + 2 };
   const onKeyDown = (e: ReactKeyboardEvent): void => {
     if (e.key === 'Escape') {
@@ -700,7 +707,7 @@ function LinkChip(p: { link: RenderHyperlink; labels: ViewerLabels; geometry: { 
   return (
     <div className="xv-link-chip" style={style} onKeyDown={onKeyDown}>
       <button type="button" className="xv-button" disabled={p.link.sheet === null} onClick={p.onOpen}>
-        {p.link.sheet === null ? p.labels.linkBlocked : p.labels.linkGoTo(p.link.ref)}
+        {p.link.sheet === null ? p.labels.linkBlocked : p.labels.linkGoTo(p.target)}
       </button>
     </div>
   );
