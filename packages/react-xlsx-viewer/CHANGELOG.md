@@ -1,5 +1,12 @@
 # react-xlsx-viewer
 
+## 1.0.0-alpha.2
+
+### Patch Changes
+
+- 38d9800: Autofilter buttons are shown (#19): a sheet with an autofilter range gets a dropdown button at the bottom-right of each header cell of the range, as in Excel. The viewer is read-only, so the buttons are disabled, out of the tab order and named by the new `labels.filterButton` ("Filter (not available in this viewer)"); a click selects the cell.
+- 85b08d8: Numbers no longer show `####` just because Calibri or Carlito isn't installed (#16). Whether a number fits its column is decided with the file font's digit and separator widths (Calibri, Arial, Times New Roman, Courier New), so a number that fits in the file's font is drawn slightly smaller in a wider fallback font instead of `####`. `DEFAULT_FONT_MAP` also lists Arimo, Tinos and Cousine, the metric-compatible fonts common on ChromeOS and Linux.
+
 ## 1.0.0-alpha.1
 
 ### Minor Changes

@@ -1,6 +1,6 @@
 # react-xlsx-viewer
 
-> **Status: prerelease (1.0.0-alpha.1).** Phase 1, a read-only viewer, is on npm under the `next` tag: `npm install react-xlsx-viewer@next`. `latest` stays the 0.0.1 name reservation until 1.0.0. Try it in the live playground: https://react-xlsx-viewer-playground.vercel.app/
+> **Status: prerelease (1.0.0-alpha.2).** Phase 1, a read-only viewer, is on npm under the `next` tag: `npm install react-xlsx-viewer@next`. `latest` stays the 0.0.1 name reservation until 1.0.0. Try it in the live playground: https://react-xlsx-viewer-playground.vercel.app/
 
 Render .xlsx and .csv workbooks in React: styles, merged cells, frozen panes, sheet tabs and formulas. Built on javascript-excel.
 
@@ -17,7 +17,7 @@ Watch the repository for 1.0.0.
 
 - **1.0 is designed:** [docs/api.md](docs/api.md) and [docs/ux.md](docs/ux.md) (decided 2026-11-16) describe a read-only viewer: a virtualised, accessible grid with styles, merges, frozen panes, sheet tabs, number formats and a formula bar, built on javascript-excel.
 - **The viewer exists** (XLV-3): `<XlsxViewer>` and `useWorkbook`, on javascript-excel 2.0.0-alpha.3 (`/read`, `/format`, `/render`). It is tested on React 18 and 19 in jsdom and Chromium, and has a performance harness (`npm run perf -w react-xlsx-viewer`). Styles, merges, panes and tabs work; XLV-4 onwards refines them.
-- **1.0.0-alpha.1 is the current prerelease** (`npm install react-xlsx-viewer@next`): the phase-1 read-only viewer. `latest` stays the 0.0.1 name reservation until 1.0.0.
+- **1.0.0-alpha.2 is the current prerelease** (`npm install react-xlsx-viewer@next`): the phase-1 read-only viewer. `latest` stays the 0.0.1 name reservation until 1.0.0.
 
 ## Repository layout
 

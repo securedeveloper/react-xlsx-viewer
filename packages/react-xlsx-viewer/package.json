@@ -1,6 +1,6 @@
 {
   "name": "react-xlsx-viewer",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.0-alpha.2",
   "description": "Render .xlsx and .csv workbooks in React: styles, merged cells, frozen panes, sheet tabs and formulas. Built on javascript-excel.",
   "license": "MIT",
   "author": "Afzal Ahmad",
