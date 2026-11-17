@@ -1,6 +1,6 @@
 # react-xlsx-viewer
 
-> **Status: planned.** This package is not usable yet. Version 0.0.1 only reserves the name.
+> **Status: prerelease (1.0.0-alpha.1).** Phase 1, a read-only viewer, is on npm under the `next` tag: `npm install react-xlsx-viewer@next`. `latest` stays the 0.0.1 name reservation until 1.0.0. Try it in the live playground: https://react-xlsx-viewer-playground.vercel.app/
 
 Render .xlsx and .csv workbooks in React: styles, merged cells, frozen panes, sheet tabs and formulas. Built on javascript-excel.
 
@@ -11,7 +11,7 @@ It will be part of a small family of spreadsheet libraries:
 - [react-data-import](https://github.com/securedeveloper/react-data-import): import .xlsx / .csv as datasets
 - [react-xlsx-viewer](https://github.com/securedeveloper/react-xlsx-viewer): view workbooks in the browser
 
-Watch the repository for the first real release.
+Watch the repository for 1.0.0.
 
 ## Status
 
