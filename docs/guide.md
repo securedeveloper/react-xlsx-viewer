@@ -25,10 +25,10 @@ Try everything below in the live playground: https://react-xlsx-viewer-playgroun
 ## 1. Install
 
 ```sh
-npm install react-xlsx-viewer@next
+npm install react-xlsx-viewer
 ```
 
-The prerelease is on the `next` tag until 1.0.0. React 18 or 19 is a peer dependency. The only runtime dependency is [javascript-excel](https://github.com/securedeveloper/javascript-excel).
+React 18 or 19 is a peer dependency. The only runtime dependency is [javascript-excel](https://github.com/securedeveloper/javascript-excel).
 
 Import the stylesheet once, anywhere in the app:
 
