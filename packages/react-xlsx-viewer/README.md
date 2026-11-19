@@ -1,11 +1,11 @@
 # react-xlsx-viewer
 
-> **Status: prerelease (1.0.0-beta.0).** This is phase 1, a read-only viewer: it shows workbooks and doesn't edit or calculate them. It is feature-complete for 1.0; only fixes go in until 1.0.0. Install the prerelease with `npm install react-xlsx-viewer@next`. `latest` stays the 0.0.1 name reservation until 1.0.0. The API is not expected to change before 1.0.0.
+> This is phase 1, a read-only viewer: it shows workbooks and doesn't edit or calculate them.
 
 Open `.xlsx` and `.csv` files in React and show them as a spreadsheet: styles, number formats, merged cells, frozen panes, sheet tabs, hyperlinks, and formulas with their stored results. It is built on [javascript-excel](https://github.com/securedeveloper/javascript-excel) and runs entirely in the browser.
 
 ```sh
-npm install react-xlsx-viewer@next
+npm install react-xlsx-viewer
 ```
 
 ```tsx

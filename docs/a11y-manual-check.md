@@ -116,6 +116,10 @@ Run all fifteen steps with each combination below. Notes list what is specific t
 4. A fail that is a screen-reader bug rather than ours (the same markup works in the other readers, and matches the WAI-ARIA grid pattern) is recorded with a link to the reader's issue, and doesn't block the release on its own.
 5. Every other fail gets an issue in this repository before the release goes ahead.
 
+## 1.0.0 (2026-11-19): manual passes not done
+
+1.0.0 shipped without the manual passes above, by the maintainer's decision. None of NVDA, JAWS, VoiceOver (macOS or iOS) or TalkBack has been checked by hand. What 1.0.0 has is axe in the browser tests (0 violations) and the automated Chromium pre-pass below. The manual passes stay open, and their results go in a 1.x release.
+
 ## Automated pre-pass (Chromium accessibility tree), 2026-11-17
 
 `packages/react-xlsx-viewer/test/browser/a11y-tree.browser.test.tsx` runs every step above in Chromium, in the Browser job, with real keyboard input. It reads what Chromium hands to screen readers from its accessibility tree over the DevTools protocol: the focused node's role, name, description and states, its ancestors, and the live regions. It then pins the result. Chromium's protocol doesn't list `aria-rowindex`, `aria-colindex`, `aria-rowcount`, `aria-colcount`, `aria-rowspan` or `aria-colspan`, which reach the platform as table attributes, so the test checks those on the DOM.
